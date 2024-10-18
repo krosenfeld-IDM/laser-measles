@@ -76,7 +76,7 @@ setup(
         "Topic :: Utilities",
     ],
     project_urls={
-        "Documentation": "https://laser-measles.readthedocs.io/",
+        "Documentation": "https://laser-measles.readthedocs.io/en/latest/",
         "Changelog": "https://laser-measles.readthedocs.io/en/latest/changelog.html",
         "Issue Tracker": "https://github.com/InstituteforDiseaseModeling/laser-measles/issues",
     },

@@ -14,7 +14,7 @@ Overview
     * - package
       - |version| |wheel| |supported-versions| |supported-implementations| |commits-since|
 .. |docs| image:: https://readthedocs.org/projects/laser-measles/badge/?style=flat
-    :target: https://readthedocs.org/projects/laser-measles/
+    :target: https://laser-measles.readthedocs.io/en/latest/
     :alt: Documentation Status
 
 .. |github-actions| image:: https://github.com/InstituteforDiseaseModeling/laser-measles/actions/workflows/github-actions.yml/badge.svg

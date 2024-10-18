@@ -26,7 +26,7 @@ extlinks = {
 
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
-    "githuburl": "https://github.com/InstituteforDiseaseModeling/laser-measles/",
+    # "githuburl": "https://github.com/InstituteforDiseaseModeling/laser-measles/",
 }
 
 html_use_smartypants = True

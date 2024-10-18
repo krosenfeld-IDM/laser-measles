@@ -27,23 +27,23 @@ Overview
 
 .. |version| image:: https://img.shields.io/pypi/v/laser-measles.svg
     :alt: PyPI Package latest release
-    :target: https://pypi.org/project/laser-measles
+    :target: https://test.pypi.org/project/laser-measles/
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/laser-measles.svg
     :alt: PyPI Wheel
-    :target: https://pypi.org/project/laser-measles
+    :target: https://test.pypi.org/project/laser-measles/
 
 .. |supported-versions| image:: https://img.shields.io/pypi/pyversions/laser-measles.svg
     :alt: Supported versions
-    :target: https://pypi.org/project/laser-measles
+    :target: https://test.pypi.org/project/laser-measles/
 
 .. |supported-implementations| image:: https://img.shields.io/pypi/implementation/laser-measles.svg
     :alt: Supported implementations
-    :target: https://pypi.org/project/laser-measles
+    :target: https://test.pypi.org/project/laser-measles/
 
 .. |commits-since| image:: https://img.shields.io/github/commits-since/InstituteforDiseaseModeling/laser-measles/v0.0.1.svg
     :alt: Commits since latest release
-    :target: https://github.com/InstituteforDiseaseModeling/laser-measles/compare/v0.0.1...main
+    :target: https://github.com/InstituteforDiseaseModeling/laser-measles/compare/bdeded2...main
 
 
 
@@ -69,7 +69,7 @@ Documentation
 =============
 
 
-https://laser-measles.readthedocs.io/
+https://laser-measles.readthedocs.io/en/latest/
 
 
 Development

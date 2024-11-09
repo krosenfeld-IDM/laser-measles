@@ -24,3 +24,5 @@ from .core import compute
 @click.argument("names", nargs=-1)
 def run(names):
     click.echo(compute(names))
+
+    return

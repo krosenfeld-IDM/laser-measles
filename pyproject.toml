@@ -1,7 +1,66 @@
 [build-system]
-requires = [
-    "setuptools>=30.3.0",
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "laser-measles"
+version = "0.0.1"
+
+dependencies = [
+  "click",
+  "laser-core @ git+https://github.com/InstituteforDiseaseModeling/laser.git@v0.0.3",
+  "numpy",
+  "tqdm",
+  "geopandas",
+  "pandas",
 ]
+
+requires-python = ">= 3.9"
+
+authors = [
+  {name = "Christopher Lorton", email = "christopher.lorton@gatesfoundation.org"},
+  {name = "Jonathan Bloedow", email = "jonathan.bloedow@gatesfoundation.org"},
+  {name = "Katherine Rosenfeld", email = "katherine.rosenfeld@gatesfoundation.org"},
+  {name = "Kevin McCarthy", email = "kevin.mccarthy@gatesfoundation.org"},
+]
+maintainers = [
+  {name = "Christopher Lorton", email = "christopher.lorton@gatesfoundation.org"}
+]
+description = "Spatial models of measles implemented with the LASER toolkit."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["measles", "spatial", "modeling", "laser"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Unix",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    # "Programming Language :: Python :: 3.13", # once Numba supports it
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://example.com"
+Documentation = "https://laser-measles.readthedocs.io/en/latest/"
+Repository = "https://github.com/InstituteforDiseaseModeling/laser-measles.git"
+Issues = "https://github.com/InstituteforDiseaseModeling/laser-measles/issues"
+Changelog = "https://github.com/InstituteforDiseaseModeling/laser-measles/blob/master/CHANGELOG.md"
+
+[project.scripts]
+cli = "laser_measles.cli:run"
+nnmm = "laser_measles.nn_model:run"
+measles = "laser_measles.measles_model:run"
 
 [tool.ruff]
 extend-exclude = ["static", "ci/templates"]

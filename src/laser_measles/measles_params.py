@@ -39,7 +39,19 @@ def get_parameters(nticks, verbose, kwargs) -> PropertySet:
         }
     )
 
-    params = PropertySet(meta_params, measles_params, network_params)
+    ri_params = PropertySet(
+        {
+            "ri_coverage": 0.7,
+            "probability_mcv1_take": 0.85,
+            "probability_mcv2_take": 0.95,
+            "mcv1_start": int(8.5 * 365 / 12),  # 8.5 months
+            "mcv1_end": int(9.5 * 365 / 12),  # 9.5 months
+            "mcv2_start": int(14.5 * 365 / 12),  # 14.5 months
+            "mcv2_end": int(15.5 * 365 / 12),  # 15.5 months
+        }
+    )
+
+    params = PropertySet(meta_params, measles_params, network_params, ri_params)
 
     # Overwrite any default parameters with those from a JSON file (optional)
     if kwargs.get("params") is not None:

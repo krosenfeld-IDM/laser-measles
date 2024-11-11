@@ -9,9 +9,11 @@ from tqdm import tqdm
 
 from laser_measles.measles_births import setup_births
 from laser_measles.measles_init import setup_initial_population
+from laser_measles.measles_maternalabs import setup_maternal_antibodies
 from laser_measles.measles_metapop import setup_meta_population
 from laser_measles.measles_nddeaths import setup_nd_deaths
 from laser_measles.measles_params import get_parameters
+from laser_measles.measles_ri import setup_routine_immunization
 from laser_measles.measles_susceptibility import setup_susceptibility
 
 
@@ -21,12 +23,12 @@ class Model:
 
 @click.command()
 @click.option("--nticks", default=365, help="Number of ticks to run the simulation")
-@click.option("--validate", is_flag=True, help="Validate the model")
+@click.option("--viz", is_flag=True, help="Display visualizations  to help validate the model")
 @click.option("--verbose", is_flag=True, help="Print verbose output")
 @click.option("--params", default=None, help="JSON file with parameters")
 @click.option("--output", default=None, help="Output file for results")
 @click.option("--seed", default=20241107, help="Random seed")
-def run(nticks, seed, verbose, validate, **kwargs):
+def run(nticks, seed, verbose, viz, **kwargs):
     """Run the measles model"""
     click.echo(f"{datetime.now(tz=None)}: Running the measles model for {nticks} ticks…")  # noqa: DTZ005
 
@@ -44,12 +46,16 @@ def run(nticks, seed, verbose, validate, **kwargs):
     nd_deaths = setup_nd_deaths(model, verbose)  # vital dynamics setup - deaths
     births.initializers.append(nd_deaths.on_birth)
 
-    # immune system setup
     susceptibility = setup_susceptibility(model, verbose)
     births.initializers.append(susceptibility.on_birth)
 
-    # maternal antibody setup
+    maternal_antibodies = setup_maternal_antibodies(model, verbose)
+    births.initializers.append(maternal_antibodies.on_birth)
+
     # routine immunization setup
+    routine_immunization = setup_routine_immunization(model, verbose)
+    births.initializers.append(routine_immunization.on_birth)
+
     # disease dynamics - incubation progression
     # disease dynamics - infection progression
     # disease dynamics - transmission
@@ -59,6 +65,8 @@ def run(nticks, seed, verbose, validate, **kwargs):
         births,
         nd_deaths,
         # susceptibility, # no-op
+        maternal_antibodies,
+        routine_immunization,
     ]
 
     model.metrics = []
@@ -80,17 +88,19 @@ def run(nticks, seed, verbose, validate, **kwargs):
         print("=" * 36)
         print(f"Total: {sum_columns.sum():29,} microseconds")
 
-    if validate:
+    if viz:
         click.echo("Validating the model…")
-        # metapop.plot()
-        # initpop.plot()
-        # births.plot()
-        # nd_deaths.plot()
+        metapop.plot()
+        initpop.plot()
+        births.plot()
+        nd_deaths.plot()
         susceptibility.plot()
+        maternal_antibodies.plot()
+        routine_immunization.plot()
 
     return
 
 
 if __name__ == "__main__":
     ctx = click.Context(run)
-    ctx.invoke(run, nticks=365, seed=20241107, verbose=True, validate=True)
+    ctx.invoke(run, nticks=365, seed=20241107, verbose=True, viz=True)

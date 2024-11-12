@@ -74,7 +74,7 @@ def setup_routine_immunization(model, verbose: bool = False):
     return routine_immunization
 
 
-@nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True)
+@nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True, cache=True)
 def nb_update_ri_timers(count, ri_timers, susceptibility):
     for i in nb.prange(count):
         timer = ri_timers[i]

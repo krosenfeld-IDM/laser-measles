@@ -8,6 +8,8 @@ from laser_core.random import seed as seed_prng
 from tqdm import tqdm
 
 from laser_measles.measles_births import setup_births
+from laser_measles.measles_incubation import Incubation
+from laser_measles.measles_infection import Infection
 from laser_measles.measles_init import setup_initial_population
 from laser_measles.measles_maternalabs import setup_maternal_antibodies
 from laser_measles.measles_metapop import setup_meta_population
@@ -15,6 +17,7 @@ from laser_measles.measles_nddeaths import setup_nd_deaths
 from laser_measles.measles_params import get_parameters
 from laser_measles.measles_ri import setup_routine_immunization
 from laser_measles.measles_susceptibility import setup_susceptibility
+from laser_measles.measles_transmission import Transmission
 
 
 class Model:
@@ -56,9 +59,18 @@ def run(nticks, seed, verbose, viz, **kwargs):
     routine_immunization = setup_routine_immunization(model, verbose)
     births.initializers.append(routine_immunization.on_birth)
 
-    # disease dynamics - incubation progression
     # disease dynamics - infection progression
+    # infection dynamics come _before_ incubation dynamics so newly set itimers
+    # don't immediately expire
+    infection = Infection(model, verbose)
+    births.initializers.append(infection.on_birth)
+
+    # disease dynamics - incubation progression
+    incubation = Incubation(model, verbose)
+    births.initializers.append(incubation.on_birth)
+
     # disease dynamics - transmission
+    transmission = Transmission(model, verbose)
 
     model.phases = [
         metapop,
@@ -67,7 +79,30 @@ def run(nticks, seed, verbose, viz, **kwargs):
         # susceptibility, # no-op
         maternal_antibodies,
         routine_immunization,
+        infection,
+        incubation,
+        transmission,
     ]
+
+    ninitial = 100
+    # Seed initial infections in random locations at the start of the simulation
+    # cinitial = 0
+    # while cinitial < ninitial:
+    #     index = model.prng.integers(0, model.population.count)
+    #     if model.population.susceptibility[index] > 0:
+    #         model.population.itimer[index] = model.params.inf_mean
+    #         cinitial += 1
+
+    # Seed initial infections in Node 13 (King County) at the start of the simulation
+    # Pierce County is Node 18, Snohomish County is Node 14, Yakima County is 19
+    cinitial = 0
+    COUNTY = 13
+    istart, iend = model.patches.populations[:].cumsum()[COUNTY - 1 : COUNTY + 1]
+    while cinitial < ninitial:
+        index = model.prng.integers(istart, iend)
+        if model.population.susceptibility[index] > 0:
+            model.population.itimer[index] = model.params.inf_mean
+            cinitial += 1
 
     model.metrics = []
     for tick in tqdm(range(nticks)):
@@ -97,6 +132,9 @@ def run(nticks, seed, verbose, viz, **kwargs):
         susceptibility.plot()
         maternal_antibodies.plot()
         routine_immunization.plot()
+        incubation.plot()
+        infection.plot()
+        transmission.plot()
 
     return
 

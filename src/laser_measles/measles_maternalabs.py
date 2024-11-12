@@ -47,7 +47,7 @@ def setup_maternal_antibodies(model, verbose: bool = False) -> None:
     return maternalabs
 
 
-@nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:]), parallel=True)
+@nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:]), parallel=True, cache=True)
 def nb_update_ma_timers(count, ma_timers, susceptibility):
     for i in nb.prange(count):
         timer = ma_timers[i]

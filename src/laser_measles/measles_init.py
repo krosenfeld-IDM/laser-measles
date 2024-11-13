@@ -4,6 +4,7 @@ from laser_core.demographics import AliasedDistribution
 from laser_core.demographics import load_pyramid_csv
 from laser_core.laserframe import LaserFrame
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 from tqdm import tqdm
 
 
@@ -42,10 +43,9 @@ class InitialPopulation:
 
         return
 
-    def plot(self):
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
-        # plt.subplot(2, 2, 1)
         fig.suptitle("Distribution of Day of Birth for Initial Population")
 
         count = self.model.patches.populations[0, :].sum()  # just the initial population
@@ -53,17 +53,7 @@ class InitialPopulation:
         plt.hist(dobs, bins=100)
         plt.xlabel("Day of Birth")
 
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-        plt.show()
-
         return
-
-
-def setup_initial_population(model, verbose: bool = False):
-    initpop = InitialPopulation(model, verbose)
-
-    return initpop
 
 
 def calc_capacity(population: np.uint32, nticks: np.uint32, cbr: np.float32, verbose: bool = False) -> np.uint32:

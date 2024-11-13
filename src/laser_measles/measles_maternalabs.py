@@ -1,6 +1,7 @@
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class MaternalAntibodies:
@@ -23,8 +24,8 @@ class MaternalAntibodies:
         model.population.ma_timer[istart:iend] = int(6 * 365 / 12)  # 6 months in days
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
         cinfants = ((self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) < 365).sum()
         cwith = (self.model.population.ma_timer[0 : self.model.population.count] > 0).sum()
@@ -33,18 +34,7 @@ class MaternalAntibodies:
         fig.suptitle(f"Maternal Antibodies for Infants (< 1 year)\n{cinfants:,} Infants")
         plt.pie([cwithout, cwith], labels=[f"Infants w/out Antibodies {cwithout:,}", f"Infants w/Maternal Antibodies {cwith:,}"])
 
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-
-        plt.show()
-
         return
-
-
-def setup_maternal_antibodies(model, verbose: bool = False) -> None:
-    maternalabs = MaternalAntibodies(model, verbose)
-
-    return maternalabs
 
 
 @nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:]), parallel=True, cache=True)

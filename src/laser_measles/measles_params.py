@@ -12,8 +12,10 @@ def get_parameters(nticks, verbose, kwargs) -> PropertySet:
             "nticks": nticks,
             "verbose": verbose,
             "cbr": np.float32(13.7),
-            "pyramid_file": Path(__file__).parent / "USA pyramid-2000.csv",
-            "mortality_file": Path(__file__).parent / "USA mortality-2000.csv",
+            "population_file": Path(__file__).parent.absolute() / "WA County Populations-2000.csv",
+            "shape_file": Path(__file__).parent.absolute() / "WA_County_Boundaries" / "WA_County_Boundaries.shp",
+            "pyramid_file": Path(__file__).parent.absolute() / "USA pyramid-2000.csv",
+            "mortality_file": Path(__file__).parent.absolute() / "USA mortality-2000.csv",
         }
     )
 

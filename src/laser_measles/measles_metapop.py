@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import click
 import geopandas as gpd
 import numpy as np
@@ -9,11 +7,48 @@ from laser_core.migration import distance
 from laser_core.migration import gravity
 from laser_core.migration import row_normalizer
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
-class Counties:
-    def __init__(self, model, gpdf):
+class MetaPopulation:
+    def __init__(self, model, verbose: bool = False):
         self.__name__ = "propagate_population"
+
+        pops = pd.read_csv(model.params.population_file)
+        pops.set_index("county", inplace=True)
+        gpdf = gpd.read_file(model.params.shape_file)
+        gpdf.drop(
+            columns=[
+                "EDIT_DATE",
+                "EDIT_STATU",
+                "EDIT_WHO",
+                "GLOBALID",
+                "JURISDICT_",
+                "JURISDIC_1",
+                "JURISDIC_3",
+                "JURISDIC_4",
+                "JURISDIC_5",
+                "JURISDIC_6",
+                "OBJECTID",
+            ],
+            inplace=True,
+        )
+        gpdf.rename(columns={"JURISDIC_2": "county"}, inplace=True)
+        gpdf.set_index("county", inplace=True)
+
+        gpdf = gpdf.join(pops)
+        centroids = gpdf.centroid.to_crs(epsg=4326)  # convert from meters to degrees
+        gpdf["latitude"] = centroids.y
+        gpdf["longitude"] = centroids.x
+        gpdf.to_crs(epsg=4326, inplace=True)
+
+        click.echo(f"Using {len(gpdf)} counties in Washington…")
+
+        if verbose:
+            click.echo(f"Counties: {gpdf.index.values[0:4]}...")
+            click.echo(f"Populations: {gpdf.population.values[0:4]}...")
+            click.echo(f"Lat/longs: {list(zip(gpdf.latitude.values, gpdf.longitude.values))[0:4]}...")
+
         self._gpdf = gpdf
         self.count = len(gpdf)
 
@@ -62,66 +97,21 @@ class Counties:
         model.patches.populations[tick + 1, :] = model.patches.populations[tick, :]
         return
 
-    def plot(self):
-        _fig = plt.figure(figsize=(12, 9), dpi=128)
-        plt.title("Washington State Counties and Populations")
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
+        fig.suptitle("Washington State Counties and Populations")
         ax = plt.gca()
         self._gpdf.plot(ax=ax)
-        plt.scatter(
+        scatter = plt.scatter(
             self._gpdf.longitude,
             self._gpdf.latitude,
             s=self._gpdf.population / 1000,
-            c="red",
-            alpha=0.5,
+            c=self._gpdf.population,
+            cmap="inferno",
         )
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-        plt.show()
+        plt.colorbar(scatter, label="Population")
 
         return
-
-
-def setup_meta_population(model, verbose: bool = False) -> None:
-    filepath = Path(__file__).parent.absolute()
-    pops = pd.read_csv(filepath / "WA County Populations-2000.csv")
-    pops.set_index("county", inplace=True)
-    gpdf = gpd.read_file(filepath / "WA_County_Boundaries" / "WA_County_Boundaries.shp")
-    gpdf.drop(
-        columns=[
-            "EDIT_DATE",
-            "EDIT_STATU",
-            "EDIT_WHO",
-            "GLOBALID",
-            "JURISDICT_",
-            "JURISDIC_1",
-            "JURISDIC_3",
-            "JURISDIC_4",
-            "JURISDIC_5",
-            "JURISDIC_6",
-            "OBJECTID",
-        ],
-        inplace=True,
-    )
-    gpdf.rename(columns={"JURISDIC_2": "county"}, inplace=True)
-    gpdf.set_index("county", inplace=True)
-
-    gpdf = gpdf.join(pops)
-    centroids = gpdf.centroid.to_crs(epsg=4326)  # convert from meters to degrees
-    gpdf["latitude"] = centroids.y
-    gpdf["longitude"] = centroids.x
-    gpdf.to_crs(epsg=4326, inplace=True)
-    # gpdf.head()
-
-    click.echo(f"Using {len(gpdf)} counties in Washington…")
-
-    if verbose:
-        click.echo(f"Counties: {gpdf.index.values[0:4]}...")
-        click.echo(f"Populations: {gpdf.population.values[0:4]}...")
-        click.echo(f"Lat/longs: {list(zip(gpdf.latitude.values, gpdf.longitude.values))[0:4]}...")
-
-    counties = Counties(model, gpdf)
-
-    return counties
 
 
 def calc_distances(latitudes: np.ndarray, longitudes: np.ndarray, verbose: bool = False) -> np.ndarray:

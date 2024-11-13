@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class Births:
@@ -52,8 +53,8 @@ class Births:
 
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Births in Top 5 Most Populous Patches")
 
         # indices = [np.where(self._model.counties.names == county)[0][0] for county in counties]
@@ -67,14 +68,4 @@ class Births:
         for index in indices:
             ax2.plot(self.model.patches.births[:, index], marker="+", markersize=4)
 
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-        plt.show()
-
         return
-
-
-def setup_births(model, verbose: bool = False):
-    births = Births(model, verbose)
-
-    return births

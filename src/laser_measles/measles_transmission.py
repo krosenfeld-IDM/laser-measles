@@ -1,6 +1,7 @@
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class Transmission:
@@ -70,8 +71,8 @@ class Transmission:
 
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Cases and Incidence")
 
         fig.add_subplot(2, 2, 1)
@@ -95,10 +96,5 @@ class Transmission:
         fig.add_subplot(2, 2, 4)
         plt.title("Incidence - Node 18 (Pierce County)")
         plt.plot(self.model.patches.incidence[:, 18])
-
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-
-        plt.show()
 
         return

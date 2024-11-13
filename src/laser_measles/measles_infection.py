@@ -1,6 +1,7 @@
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class Infection:
@@ -41,8 +42,8 @@ class Infection:
 
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Infections By Age")
 
         ages_in_years = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
@@ -52,10 +53,5 @@ class Infection:
         infected = itimers > 0
         infection_counts = np.bincount(ages_in_years[infected])
         plt.bar(range(len(infection_counts)), infection_counts)
-
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-
-        plt.show()
 
         return

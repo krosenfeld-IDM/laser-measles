@@ -1,12 +1,16 @@
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class Susceptibility:
     def __init__(self, model, verbose: bool = False):
         self.__name__ = "susceptibility"
         self.model = model
+
+        model.population.add_scalar_property("susceptibility", dtype=np.uint8, default=1)
+        initialize_susceptibility(model.population.count, model.population.dob, model.population.susceptibility)
 
         return
 
@@ -20,8 +24,8 @@ class Susceptibility:
 
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Susceptibility Distribution By Age")
         age_bins = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
         sus_counts = np.bincount(age_bins, weights=self.model.population.susceptibility[0 : self.model.population.count].astype(np.uint32))
@@ -29,19 +33,7 @@ class Susceptibility:
         plt.bar(range(len(age_counts)), age_counts)
         plt.bar(range(len(sus_counts)), sus_counts, alpha=0.5)
 
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-
-        plt.show()
-
         return
-
-
-def setup_susceptibility(model, verbose: bool = False) -> None:
-    model.population.add_scalar_property("susceptibility", dtype=np.uint8, default=1)
-    initialize_susceptibility(model.population.count, model.population.dob, model.population.susceptibility)
-
-    return Susceptibility(model, verbose)
 
 
 @nb.njit((nb.uint32, nb.int32[:], nb.uint8[:]), parallel=True, cache=True)

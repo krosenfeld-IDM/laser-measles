@@ -3,6 +3,7 @@ import numpy as np
 from laser_core.demographics import KaplanMeierEstimator
 from laser_core.sortedqueue import SortedQueue
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 from tqdm import tqdm
 
 
@@ -77,8 +78,8 @@ class NonDiseaseDeaths:
 
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Cumulative Non-Disease Deaths for Year 0 Population")
 
         dobs = self.model.population.dob[0 : self.model.population.count]
@@ -100,14 +101,4 @@ class NonDiseaseDeaths:
         else:
             click.echo("Found no individuals born in the first year.")
 
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-        plt.show()
-
         return
-
-
-def setup_nd_deaths(model, verbose: bool = False):
-    nd_deaths = NonDiseaseDeaths(model, verbose)
-
-    return nd_deaths

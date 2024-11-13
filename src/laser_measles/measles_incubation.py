@@ -1,6 +1,7 @@
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class Incubation:
@@ -48,18 +49,13 @@ class Incubation:
 
         return
 
-    def plot(self) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Incubation Period Distribution")
 
         etimers = self.model.population.etimer[0 : self.model.population.count]
         incubating = etimers > 0
         incubation_counts = np.bincount(etimers[incubating])
         plt.bar(range(len(incubation_counts)), incubation_counts)
-
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-
-        plt.show()
 
         return

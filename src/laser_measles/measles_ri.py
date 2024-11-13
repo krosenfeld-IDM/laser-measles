@@ -1,6 +1,7 @@
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 
 class RoutineImmunization:
@@ -32,8 +33,8 @@ class RoutineImmunization:
 
         return
 
-    def plot(self):
-        fig = plt.figure(figsize=(12, 9), dpi=128)
+    def plot(self, fig: Figure = None) -> None:
+        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
         population = self.model.population
         indices = population.dob[0 : population.count] > 0
@@ -60,18 +61,7 @@ class RoutineImmunization:
             ],
         )
 
-        mgr = plt.get_current_fig_manager()
-        mgr.full_screen_toggle()
-
-        plt.show()
-
         return
-
-
-def setup_routine_immunization(model, verbose: bool = False):
-    routine_immunization = RoutineImmunization(model, verbose)
-
-    return routine_immunization
 
 
 @nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True, cache=True)

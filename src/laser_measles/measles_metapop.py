@@ -3,11 +3,12 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 from laser_core.laserframe import LaserFrame
-from laser_core.migration import distance
 from laser_core.migration import gravity
 from laser_core.migration import row_normalizer
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
+
+from laser_measles.utils import calc_distances
 
 
 class MetaPopulation:
@@ -52,6 +53,7 @@ class MetaPopulation:
         self._gpdf = gpdf
         self.count = len(gpdf)
 
+        # We need some patches with population data ...
         npatches = self.count
         model.patches = LaserFrame(npatches)
 
@@ -112,17 +114,3 @@ class MetaPopulation:
         plt.colorbar(scatter, label="Population")
 
         return
-
-
-def calc_distances(latitudes: np.ndarray, longitudes: np.ndarray, verbose: bool = False) -> np.ndarray:
-    assert latitudes.ndim == 1, "Latitude array must be one-dimensional"
-    assert longitudes.shape == latitudes.shape, "Latitude and longitude arrays must have the same shape"
-    npatches = len(latitudes)
-    distances = np.zeros((npatches, npatches), dtype=np.float32)
-    for i, (lat, long) in enumerate(zip(latitudes, longitudes)):
-        distances[i, :] = distance(lat, long, latitudes, longitudes)
-
-    if verbose:
-        click.echo(f"Upper left corner of distance matrix:\n{distances[0:4, 0:4]}")
-
-    return distances

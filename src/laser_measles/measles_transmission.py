@@ -73,28 +73,24 @@ class Transmission:
 
     def plot(self, fig: Figure = None) -> None:
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
-        fig.suptitle("Cases and Incidence")
+        fig.suptitle("Cases and Incidence for Two Largest Patches")
+
+        itwo, ione = np.argsort(self.model.patches.populations[-1, :])[-2:]
 
         fig.add_subplot(2, 2, 1)
-        plt.title("Cases - Node 13 (King County)")
-        plt.plot(self.model.patches.cases[:, 13])
+        plt.title(f"Cases - Node {ione}")  # ({self.names[ione]})")
+        plt.plot(self.model.patches.cases[:, ione])
 
         fig.add_subplot(2, 2, 2)
-        plt.title("Incidence - Node 13 (King County)")
-        plt.plot(self.model.patches.incidence[:, 13])
-
-        # fig.add_subplot(2, 2, 3)
-        # plt.title("S-I Orbitals - Node 13")
-        # s_fraction = self.model.patches.S[:, 13] / self.model.patches.populations[:, 13]
-        # i_fraction = self.model.patches.I[:, 13] / self.model.patches.populations[:, 13]
-        # plt.plot(s_fraction, i_fraction)
+        plt.title(f"Incidence - Node {ione}")  # ({self.names[ione]})")
+        plt.plot(self.model.patches.incidence[:, ione])
 
         fig.add_subplot(2, 2, 3)
-        plt.title("Cases - Node 18 (Pierce County)")
-        plt.plot(self.model.patches.cases[:, 18])
+        plt.title(f"Cases - Node {itwo}")  # ({self.names[itwo]})")
+        plt.plot(self.model.patches.cases[:, itwo])
 
         fig.add_subplot(2, 2, 4)
-        plt.title("Incidence - Node 18 (Pierce County)")
-        plt.plot(self.model.patches.incidence[:, 18])
+        plt.title(f"Incidence - Node {itwo}")  # ({self.names[itwo]})")
+        plt.plot(self.model.patches.incidence[:, itwo])
 
         return

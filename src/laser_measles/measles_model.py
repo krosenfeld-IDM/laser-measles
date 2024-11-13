@@ -20,6 +20,7 @@ from laser_measles.measles_params import get_parameters
 from laser_measles.measles_ri import RoutineImmunization
 from laser_measles.measles_susceptibility import Susceptibility
 from laser_measles.measles_transmission import Transmission
+from laser_measles.utils import seed_infections_in_patch
 
 
 class Model:
@@ -36,10 +37,11 @@ class Model:
 @click.option("--pdf", is_flag=True, help="Output visualization results as a PDF")
 def run(nticks, seed, verbose, viz, pdf, **kwargs):
     """Run the measles model"""
-    click.echo(f"{datetime.now(tz=None)}: Running the measles model for {nticks} ticks…")  # noqa: DTZ005
-
     model = Model()
-    model.prng = seed_prng(seed if seed is not None else datetime.now().microsecond)  # noqa: DTZ005
+    model.tstart = datetime.now(tz=None)  # noqa: DTZ005
+    click.echo(f"{model.tstart}: Running the measles model for {nticks} ticks…")
+
+    model.prng = seed_prng(seed if seed is not None else model.tstart.microsecond)
 
     model.params = get_parameters(nticks, verbose, kwargs)
 
@@ -87,6 +89,9 @@ def run(nticks, seed, verbose, viz, pdf, **kwargs):
             timing.append(delta.seconds * 1_000_000 + delta.microseconds)
         model.metrics.append(timing)
 
+    model.tfinish = datetime.now(tz=None)  # noqa: DTZ005
+    print(f"Completed the measles model at {model.tfinish}…")
+
     if verbose:
         metrics = pd.DataFrame(model.metrics, columns=["tick"] + [phase.__name__ for phase in model.phases])
         plot_columns = metrics.columns[1:]
@@ -94,7 +99,6 @@ def run(nticks, seed, verbose, viz, pdf, **kwargs):
         width = max(map(len, sum_columns.index))
         for key in sum_columns.index:
             print(f"{key:{width}}: {sum_columns[key]:13,} µs")
-        # print(sum_columns)
         print("=" * (width + 2 + 13 + 3))
         print(f"{'Total:':{width+1}} {sum_columns.sum():13,} microseconds")
 
@@ -104,37 +108,34 @@ def run(nticks, seed, verbose, viz, pdf, **kwargs):
             for instance in instances:
                 instance.plot()
                 plt.show()
+
+            plt.pie(
+                sum_columns,
+                labels=[name if not name.startswith("do_") else name[3:] for name in sum_columns.index],
+                autopct="%1.1f%%",
+                startangle=140,
+            )
+            plt.title("Update Phase Times")
+            plt.show()
         else:
             click.echo("Generating PDF output…")
-            with PdfPages(f"measles {datetime.now(tz=None):%Y-%m-%d %H%M%S}.pdf") as pdf:  # noqa: DTZ005
+            pdf_filename = f"measles {model.tstart:%Y-%m-%d %H%M%S}.pdf"
+            with PdfPages(pdf_filename) as pdf:
                 for instance in instances:
                     instance.plot()
                     pdf.savefig()
                     plt.close()
 
-    return
-
-
-def seed_infections_randomly(model: Model, ninfections: int = 100) -> None:
-    # Seed initial infections in random locations at the start of the simulation
-    cinfections = 0
-    while cinfections < ninfections:
-        index = model.prng.integers(0, model.population.count)
-        if model.population.susceptibility[index] > 0:
-            model.population.itimer[index] = model.params.inf_mean
-            cinfections += 1
-
-    return
-
-
-def seed_infections_in_patch(model: Model, ipatch: int, ninfections: int = 100) -> None:
-    # Seed initial infections in a specific location at the start of the simulation
-    cinfections = 0
-    while cinfections < ninfections:
-        index = model.prng.integers(0, model.population.count)
-        if model.population.susceptibility[index] > 0 and model.population.nodeid[index] == ipatch:
-            model.population.itimer[index] = model.params.inf_mean
-            cinfections += 1
+                plt.pie(
+                    sum_columns,
+                    labels=[name if not name.startswith("do_") else name[3:] for name in sum_columns.index],
+                    autopct="%1.1f%%",
+                    startangle=140,
+                )
+                plt.title("Update Phase Times")
+                pdf.savefig()
+                plt.close()
+            click.echo(f"PDF output saved to '{pdf_filename}'.")
 
     return
 

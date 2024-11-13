@@ -68,11 +68,6 @@ setup(
     #     "Programming Language :: Python :: 3.11",
     #     "Programming Language :: Python :: 3.12",
     #     "Programming Language :: Python :: Implementation :: CPython",
-    #     # uncomment if you test on these interpreters:
-    #     # "Programming Language :: Python :: Implementation :: PyPy",
-    #     # "Programming Language :: Python :: Implementation :: IronPython",
-    #     # "Programming Language :: Python :: Implementation :: Jython",
-    #     # "Programming Language :: Python :: Implementation :: Stackless",
     #     "Topic :: Utilities",
     # ],
     # project_urls={

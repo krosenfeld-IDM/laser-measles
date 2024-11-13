@@ -12,6 +12,8 @@ def get_parameters(nticks, verbose, kwargs) -> PropertySet:
             "verbose": verbose,
             "cbr": np.float32(35.0),
             "pyramid_file": Path(__file__).parent / "nigeria_pyramid.csv",
+            "mortality_file": Path(__file__).parent / "nigeria_mortality.csv",
+            "shape_file": Path(__file__).parent / "nga_adm_osgof_20190417" / "nga_admbnda_adm2_osgof_20190417.shp",
         }
     )
 

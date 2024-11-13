@@ -6,9 +6,7 @@ from matplotlib.figure import Figure
 class Births:
     def __init__(self, model, verbose: bool = False):
         assert getattr(model, "population", None) is not None, "Births requires the model to have a `population` attribute"
-        # assert getattr(model.population, "alive", None) is not None, "Births requires the model population to have an `alive` attribute"
         assert getattr(model.population, "dob", None) is not None, "Births requires the model population to have a `dob` attribute"
-        # assert getattr(model.population, "dod", None) is not None, "Births requires the model population to have a `dod` attribute"
 
         self.__name__ = "births"
         self.model = model
@@ -38,18 +36,17 @@ class Births:
 
         model.population.dob[istart:iend] = tick  # set to current tick
 
+        # set the nodeids for the newborns in case subsequent initializers need them (properties varying by patch)
         index = istart
         nodeids = model.population.nodeid
         for nodeid, births in enumerate(todays_births):
             nodeids[index : index + births] = nodeid
-            for initializer in self._initializers:
-                initializer(model, tick, index, index + births)
             index += births
-        model.patches.populations[tick + 1, :] += todays_births
 
-        # set_mcv_status(model, istart, iend)
-        # set_mcv_timers(model, istart, iend)
-        # init_ma_timers(model, istart, iend)
+        for initializer in self._initializers:
+            initializer(model, tick, istart, iend)
+
+        model.patches.populations[tick + 1, :] += todays_births
 
         return
 

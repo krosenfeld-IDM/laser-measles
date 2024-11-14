@@ -37,8 +37,8 @@ class NonDiseaseDeaths:
 
         return
 
-    @staticmethod
-    def on_birth(model, tick, istart, iend):
+    def on_birth(self, model, tick, istart, iend):
+        # newborns are alive and have a predicted date of death
         model.population.alive[istart:iend] = True
         model.population.dod[istart:iend] = 0  # temporarily set to 0 for the next line
         model.population.dod[istart:iend] = tick + model.estimator.predict_age_at_death(model.population.dod[istart:iend], max_year=100)
@@ -78,7 +78,7 @@ class NonDiseaseDeaths:
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Cumulative Non-Disease Deaths for Year 0 Population")
 
@@ -98,6 +98,7 @@ class NonDiseaseDeaths:
 
             plt.plot(range(aad_max + 1), expected_deaths, marker="+", markersize=4, color="blue")
             plt.xlabel("Years Since Birth")
+            yield
         else:
             click.echo("Found no individuals born in the first year.")
 

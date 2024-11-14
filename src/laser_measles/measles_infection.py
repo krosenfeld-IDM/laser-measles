@@ -29,9 +29,10 @@ class Infection:
 
         return
 
-    @staticmethod
-    def on_birth(model, _tick, istart, iend) -> None:
-        Infection.nb_set_itimers(istart, iend, model.population.itimer, 0)
+    def on_birth(self, model, _tick, istart, iend) -> None:
+        # newborns are not infectious
+        # Infection.nb_set_itimers(istart, iend, model.population.itimer, 0)
+        model.population.itimer[istart:iend] = 0
         return
 
     @staticmethod
@@ -42,7 +43,7 @@ class Infection:
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Infections By Age")
 
@@ -54,4 +55,5 @@ class Infection:
         infection_counts = np.bincount(ages_in_years[infected])
         plt.bar(range(len(infection_counts)), infection_counts)
 
+        yield
         return

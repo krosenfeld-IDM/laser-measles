@@ -71,7 +71,7 @@ class Transmission:
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Cases and Incidence for Two Largest Patches")
 
@@ -93,4 +93,5 @@ class Transmission:
         plt.title(f"Incidence - Node {itwo}")  # ({self.names[itwo]})")
         plt.plot(self.model.patches.incidence[:, itwo])
 
+        yield
         return

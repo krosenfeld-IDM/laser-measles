@@ -1,4 +1,7 @@
+from datetime import datetime
+
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
@@ -15,6 +18,7 @@ class Births:
         model.patches.add_vector_property("births", length=nyears, dtype=np.uint32)
 
         self._initializers = []
+        self._metrics = []
 
         return
 
@@ -43,16 +47,22 @@ class Births:
             nodeids[index : index + births] = nodeid
             index += births
 
+        timing = [tick]
         for initializer in self._initializers:
-            initializer(model, tick, istart, iend)
+            tstart = datetime.now(tz=None)  # noqa: DTZ005
+            initializer.on_birth(model, tick, istart, iend)
+            tfinish = datetime.now(tz=None)  # noqa: DTZ005
+            delta = tfinish - tstart
+            timing.append(int(delta.total_seconds() * 1_000_000))
+        self._metrics.append(timing)
 
         model.patches.populations[tick + 1, :] += todays_births
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
-        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
-        fig.suptitle("Births in Top 5 Most Populous Patches")
+    def plot(self, fig: Figure = None):
+        _fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
+        _fig.suptitle("Births in Top 5 Most Populous Patches")
 
         # indices = [np.where(self._model.counties.names == county)[0][0] for county in counties]
         indices = self.model.patches.populations[0, :].argsort()[-5:]
@@ -64,5 +74,19 @@ class Births:
         ax2 = ax1.twinx()
         for index in indices:
             ax2.plot(self.model.patches.births[:, index], marker="+", markersize=4)
+
+        yield
+
+        _fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
+        _fig.suptitle("Births in Top 5 Most Populous Patches")
+
+        metrics = pd.DataFrame(self._metrics, columns=["tick"] + [type(initializer).__name__ for initializer in self._initializers])
+        plot_columns = metrics.columns[1:]
+        sum_columns = metrics[plot_columns].sum()
+
+        plt.pie(sum_columns, labels=sum_columns.index, autopct="%1.1f%%", startangle=140)
+        plt.title("On Birth Initializer Times")
+
+        yield
 
         return

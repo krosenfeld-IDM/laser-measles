@@ -34,10 +34,10 @@ class Incubation:
 
         return
 
-    @staticmethod
-    def on_birth(model, _tick, istart, iend) -> None:
+    def on_birth(self, model, _tick, istart, iend) -> None:
         # newborns are _not_ incubating
-        Incubation.nb_set_etimers(istart, iend, model.population.etimer, 0)
+        # Incubation.nb_set_etimers(istart, iend, model.population.etimer, 0)
+        model.population.etimer[istart:iend] = 0
 
         return
 
@@ -49,7 +49,7 @@ class Incubation:
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Incubation Period Distribution")
 
@@ -58,4 +58,5 @@ class Incubation:
         incubation_counts = np.bincount(etimers[incubating])
         plt.bar(range(len(incubation_counts)), incubation_counts)
 
+        yield
         return

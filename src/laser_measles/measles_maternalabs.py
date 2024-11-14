@@ -18,13 +18,12 @@ class MaternalAntibodies:
         nb_update_ma_timers(model.population.count, model.population.ma_timer, model.population.susceptibility)
         return
 
-    @staticmethod
-    def on_birth(model, _tick, istart, iend) -> None:
+    def on_birth(self, model, _tick, istart, iend) -> None:
         model.population.susceptibility[istart:iend] = 0  # newborns are _not_ susceptible due to maternal antibodies
         model.population.ma_timer[istart:iend] = int(6 * 365 / 12)  # 6 months in days
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
         cinfants = ((self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) < 365).sum()
@@ -34,6 +33,7 @@ class MaternalAntibodies:
         fig.suptitle(f"Maternal Antibodies for Infants (< 1 year)\n{cinfants:,} Infants")
         plt.pie([cwithout, cwith], labels=[f"Infants w/out Antibodies {cwithout:,}", f"Infants w/Maternal Antibodies {cwith:,}"])
 
+        yield
         return
 
 

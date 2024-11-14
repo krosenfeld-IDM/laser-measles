@@ -26,14 +26,14 @@ class RoutineImmunization:
         nb_update_ri_timers(model.population.count, model.population.ri_timer, model.population.susceptibility)
         return
 
-    @staticmethod
-    def on_birth(model, _tick, istart, iend):
+    def on_birth(self, model, _tick, istart, iend):
+        # newborns get an MCV status and ri_timer
         set_mcv_status(model, istart, iend)
         set_mcv_timers(model, istart, iend)
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
         population = self.model.population
@@ -61,6 +61,7 @@ class RoutineImmunization:
             ],
         )
 
+        yield
         return
 
 

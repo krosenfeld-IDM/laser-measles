@@ -17,14 +17,14 @@ class Susceptibility:
     def __call__(self, model, tick):
         return
 
-    @staticmethod
-    def on_birth(model, _tick, istart, iend):
+    def on_birth(self, model, _tick, istart, iend):
         # newborns are _not_ susceptible
-        set_susceptibility(istart, iend, model.population.susceptibility, 0)
+        # set_susceptibility(istart, iend, model.population.susceptibility, 0)
+        model.population.susceptibility[istart:iend] = 0
 
         return
 
-    def plot(self, fig: Figure = None) -> None:
+    def plot(self, fig: Figure = None):
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Susceptibility Distribution By Age")
         age_bins = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
@@ -33,6 +33,7 @@ class Susceptibility:
         plt.bar(range(len(age_counts)), age_counts)
         plt.bar(range(len(sus_counts)), sus_counts, alpha=0.5)
 
+        yield
         return
 
 

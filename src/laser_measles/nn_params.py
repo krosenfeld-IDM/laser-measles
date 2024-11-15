@@ -1,19 +1,21 @@
 import re
 from pathlib import Path
 
+import click
 import numpy as np
 from laser_core.propertyset import PropertySet
 
 
-def get_parameters(nticks, verbose, kwargs) -> PropertySet:
+def get_parameters(kwargs) -> PropertySet:
     meta_params = PropertySet(
         {
-            "nticks": nticks,
-            "verbose": verbose,
+            "nticks": 365,
+            "verbose": False,
             "cbr": np.float32(35.0),
             "pyramid_file": Path(__file__).parent / "nigeria_pyramid.csv",
             "mortality_file": Path(__file__).parent / "nigeria_mortality.csv",
-            "shape_file": Path(__file__).parent / "nga_adm_osgof_20190417" / "nga_admbnda_adm2_osgof_20190417.shp",
+            # "shape_file": Path(__file__).parent / "nga_adm_osgof_20190417" / "nga_admbnda_adm2_osgof_20190417.shp",
+            "shape_file": Path(__file__).parent / "northern-nigeria" / "northern-nigeria.shp",
         }
     )
 
@@ -53,22 +55,30 @@ def get_parameters(nticks, verbose, kwargs) -> PropertySet:
 
     params = PropertySet(meta_params, measles_params, network_params, ri_params)
 
-    # Second, optionally, load parameters from a JSON file
+    # Overwrite any default parameters with those from a JSON file (optional)
     if kwargs.get("params") is not None:
         paramfile = Path(kwargs.get("params"))
         params += PropertySet.load(paramfile)
-        print(f"Loaded parameters from `{paramfile}`…")
+        click.echo(f"Loaded parameters from `{paramfile}`…")
 
-    # Third, optionally, override parameters from the command line
-    if kwargs.get("param") is not None:
-        for kvp in kwargs.get("param"):
-            key, value = re.split("[=:]+", kvp)
-            if key not in params:
-                raise ValueError(f"Unknown parameter: {key}")
-            value = type(params[key])(value)  # convert from string to existing type
+    # Finally, overwrite any parameters with those from the command line (optional)
+    for key, value in kwargs.items():
+        if key == "params":
+            continue  # handled above
+
+        if key != "param":
+            click.echo(f"Using `{value}` for parameter `{key}` from the command line…")
             params[key] = value
-            print(f"Overriding parameter `{key}` with `{value}` ({type(value)})…")
+        else:  # arbitrary param:value pairs from the command line
+            for kvp in kwargs["param"]:
+                key, value = re.split("[=:]+", kvp)
+                if key not in params:
+                    click.echo(f"Unknown parameter `{key}` ({value=}). Skipping…")
+                    continue
+                value = type(params[key])(value)  # Cast the value to the same type as the existing parameter
+                click.echo(f"Using `{value}` for parameter `{key}` from the command line…")
+                params[key] = value
 
-    params.beta = params.r_naught / params.inf_mean  # type: ignore
+    params.beta = np.float32(np.float32(params.r_naught) / np.float32(params.inf_mean))
 
     return params

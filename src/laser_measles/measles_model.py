@@ -24,7 +24,7 @@ from laser_measles.utils import seed_infections_in_patch
 @click.option("--pdf", is_flag=True, help="Output visualization results as a PDF")
 @click.option("--output", default=None, help="Output file for results")
 @click.option("--params", default=None, help="JSON file with parameters")
-@click.option("--param", "-p", multiple=True, help="Additional parameter overrides")
+@click.option("--param", "-p", multiple=True, help="Additional parameter overrides (param:value or param=value)")
 def run(**kwargs):
     parameters = get_parameters(kwargs)
     scenario = get_scenario(parameters, parameters["verbose"])

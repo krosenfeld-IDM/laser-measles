@@ -121,21 +121,21 @@ class Model:
         return
 
     def run(self) -> None:
-        self.tstart = datetime.now(tz=None)
+        self.tstart = datetime.now(tz=None)  # noqa: DTZ005
         click.echo(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
 
         self.metrics = []
         for tick in tqdm(range(self.params.nticks)):
             timing = [tick]
             for phase in self.phases:
-                tstart = datetime.now(tz=None)
+                tstart = datetime.now(tz=None)  # noqa: DTZ005
                 phase(self, tick)
-                tfinish = datetime.now(tz=None)
+                tfinish = datetime.now(tz=None)  # noqa: DTZ005
                 delta = tfinish - tstart
                 timing.append(delta.seconds * 1_000_000 + delta.microseconds)
             self.metrics.append(timing)
 
-        self.tfinish = datetime.now(tz=None)
+        self.tfinish = datetime.now(tz=None)  # noqa: DTZ005
         print(f"Completed the {self.name} model at {self.tfinish}…")
 
         if self.params.verbose:

@@ -1,3 +1,19 @@
+"""
+This module defines the Susceptibility class and associated functions for managing and visualizing
+the susceptibility of a population to measles based on age.
+
+Classes:
+    Susceptibility: Manages the susceptibility property of a population and provides methods for
+                    updating and plotting susceptibility data.
+
+Functions:
+    initialize_susceptibility(count, dob, susceptibility):
+        Initializes the susceptibility of individuals in the population based on their date of birth.
+
+    set_susceptibility(istart, iend, susceptibility, value):
+        Sets the susceptibility of a range of individuals in the population to a specified value.
+"""
+
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
@@ -5,7 +21,42 @@ from matplotlib.figure import Figure
 
 
 class Susceptibility:
+    """
+    A class to represent the susceptibility of a population in a model.
+    Attributes
+    ----------
+    model : object
+        The model object containing the population data.
+    verbose : bool, optional
+        A flag to enable verbose output (default is False).
+    Methods
+    -------
+    __call__(model, tick):
+        Placeholder method for calling the object.
+    on_birth(model, _tick, istart, iend):
+        Updates the susceptibility of newborns in the population.
+    plot(fig: Figure = None):
+        Plots the susceptibility distribution by age.
+    """
+
     def __init__(self, model, verbose: bool = False):
+        """
+        Initialize the susceptibility component of the model.
+        Parameters:
+        model : object
+            The model object that contains the population data.
+        verbose : bool, optional
+            If True, enables verbose output (default is False).
+        Attributes:
+        __name__ : str
+            The name of the component, set to "susceptibility".
+        model : object
+            The model object passed to the initializer.
+        The method also adds a scalar property "susceptibility" to the model's population
+        with a default value of 1 and initializes the susceptibility values based on the
+        population count, date of birth (dob), and susceptibility attributes.
+        """
+
         self.__name__ = "susceptibility"
         self.model = model
 
@@ -15,9 +66,32 @@ class Susceptibility:
         return
 
     def __call__(self, model, tick):
+        """
+        This method allows the instance to be called as a function.
+        Parameters:
+        model (object): The model object that contains the state and behavior of the simulation.
+        tick (int): The current tick or time step in the simulation.
+        Returns:
+        None
+        """
+
         return
 
     def on_birth(self, model, _tick, istart, iend):
+        """
+        Handle the birth event in the model by setting the susceptibility of newborns.
+        This method is called when a birth event occurs in the model. It sets the
+        susceptibility of the newborns to 0, indicating that they are not susceptible
+        to the disease.
+        Parameters:
+        model (object): The model object containing the population data.
+        _tick (int): The current tick or time step in the simulation.
+        istart (int): The starting index of the newborns in the population array.
+        iend (int): The ending index of the newborns in the population array.
+        Returns:
+        None
+        """
+
         # newborns are _not_ susceptible
         # set_susceptibility(istart, iend, model.population.susceptibility, 0)
         model.population.susceptibility[istart:iend] = 0
@@ -25,6 +99,14 @@ class Susceptibility:
         return
 
     def plot(self, fig: Figure = None):
+        """
+        Plots the susceptibility distribution by age.
+        Parameters:
+        fig (Figure, optional): A Matplotlib Figure object. If None, a new figure is created with a size of 12x9 inches and a DPI of 128.
+        Yields:
+        None: This function uses a generator to yield control back to the caller.
+        """
+
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Susceptibility Distribution By Age")
         age_bins = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
@@ -38,7 +120,7 @@ class Susceptibility:
 
 
 @nb.njit((nb.uint32, nb.int32[:], nb.uint8[:]), parallel=True, cache=True)
-def initialize_susceptibility(count, dob, susceptibility) -> None:
+def initialize_susceptibility(count, dob, susceptibility) -> None:  # pragma: no cover
     five_years_ago = -5 * 365
     for i in nb.prange(count):
         # 5 y.o. and older are _not_ susceptible (dobs are negative)
@@ -48,7 +130,7 @@ def initialize_susceptibility(count, dob, susceptibility) -> None:
 
 
 @nb.njit((nb.uint32, nb.uint32, nb.uint8[:], nb.uint8), parallel=True, cache=True)
-def set_susceptibility(istart, iend, susceptibility, value) -> None:
+def set_susceptibility(istart, iend, susceptibility, value) -> None:  # pragma: no cover
     for i in nb.prange(istart, iend):
         susceptibility[i] = value
 

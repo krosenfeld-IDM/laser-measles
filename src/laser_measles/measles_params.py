@@ -1,3 +1,29 @@
+"""
+This module defines the function `get_parameters` which initializes and returns a `PropertySet` object containing
+parameters for a measles simulation model. The parameters are divided into several categories: meta parameters,
+measles-specific parameters, network parameters, and routine immunization (RI) parameters. The function also allows
+for the optional loading of parameters from a JSON file and the overriding of parameters via command line arguments.
+
+Functions:
+
+    get_parameters(kwargs) -> PropertySet:
+
+        Initializes and returns a `PropertySet` object with default parameters, optionally overridden by parameters
+        from a JSON file and/or command line arguments.
+
+Classes:
+
+    PropertySet: A class from the `laser_core.propertyset` module used to store and manage simulation parameters.
+
+Dependencies:
+
+    - re
+    - pathlib.Path
+    - click
+    - numpy as np
+    - laser_core.propertyset.PropertySet
+"""
+
 import re
 from pathlib import Path
 
@@ -7,6 +33,26 @@ from laser_core.propertyset import PropertySet
 
 
 def get_parameters(kwargs) -> PropertySet:
+    """
+    Generate a set of parameters for the measles simulation.
+
+    This function initializes default parameters for the simulation, including meta parameters,
+    measles-specific parameters, network parameters, and routine immunization parameters. It then
+    allows for these parameters to be overwritten by values from a JSON file and/or command line
+    arguments.
+
+    Args:
+
+        kwargs (dict): A dictionary of keyword arguments that can include:
+
+            - "params" (str): Path to a JSON file containing parameter values to overwrite defaults.
+            - "param" (list): List of strings in the format "key=value" to overwrite specific parameters.
+
+    Returns:
+
+        PropertySet: A PropertySet object containing all the parameters for the simulation.
+    """
+
     meta_params = PropertySet(
         {
             "nticks": 365,

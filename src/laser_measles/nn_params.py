@@ -1,3 +1,25 @@
+"""
+This module defines the function `get_parameters` which initializes and returns a `PropertySet` object containing
+various parameters for a simulation. The parameters are divided into four categories: meta parameters, measles
+parameters, network parameters, and routine immunization (RI) parameters. The function also allows for the
+overwriting of default parameters with those provided via a JSON file or command line arguments.
+
+Functions:
+    get_parameters(kwargs) -> PropertySet:
+        Initializes and returns a `PropertySet` object with default parameters, optionally overwriting them with
+        values from a JSON file or command line arguments.
+
+Classes:
+    PropertySet: A class from the `laser_core.propertyset` module used to manage parameter sets.
+
+Dependencies:
+    - re
+    - pathlib.Path
+    - click
+    - numpy as np
+    - laser_core.propertyset.PropertySet
+"""
+
 import re
 from pathlib import Path
 
@@ -7,6 +29,32 @@ from laser_core.propertyset import PropertySet
 
 
 def get_parameters(kwargs) -> PropertySet:
+    """
+    Generate a PropertySet containing various parameters for the simulation.
+    This function initializes default parameters for the simulation, which can be
+    optionally overwritten by parameters from a JSON file and/or command line arguments.
+
+    Args:
+
+        kwargs (dict): A dictionary of keyword arguments that can include:
+
+            - "params" (str): Path to a JSON file containing parameters to overwrite the defaults.
+            - "param" (list): List of arbitrary parameter-value pairs from the command line.
+
+    Returns:
+
+        PropertySet: A PropertySet object containing the combined parameters.
+
+    Notes:
+
+        - The function initializes four sets of parameters: meta_params, measles_params,
+          network_params, and ri_params.
+        - If a "params" key is present in kwargs, the parameters from the specified JSON file
+          will overwrite the default parameters.
+        - Any additional parameters provided in kwargs will further overwrite the parameters.
+        - The function calculates the 'beta' parameter based on 'r_naught' and 'inf_mean'.
+    """
+
     meta_params = PropertySet(
         {
             "nticks": 365,

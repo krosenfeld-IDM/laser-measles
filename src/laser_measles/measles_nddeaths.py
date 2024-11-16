@@ -1,3 +1,31 @@
+"""
+This module defines the NonDiseaseDeaths class, which models non-disease related deaths in a population over time.
+
+Classes:
+    NonDiseaseDeaths: A class to handle non-disease mortality in a population model.
+
+Dependencies:
+    - click
+    - numpy as np
+    - laser_core.demographics.KaplanMeierEstimator
+    - laser_core.sortedqueue.SortedQueue
+    - matplotlib.pyplot as plt
+    - matplotlib.figure.Figure
+    - tqdm
+
+Usage:
+    The NonDiseaseDeaths class is initialized with a model and an optional verbosity flag. It adds scalar properties to the population,
+    estimates dates of death using a Kaplan-Meier estimator, and manages a sorted queue of non-disease death events. The class provides
+    methods to handle births, update the model at each tick, and plot cumulative non-disease deaths.
+
+Example:
+    model = SomeModel()
+    non_disease_deaths = NonDiseaseDeaths(model)
+    non_disease_deaths.on_birth(model, tick, istart, iend)
+    non_disease_deaths(model, tick)
+    non_disease_deaths.plot()
+"""
+
 import click
 import numpy as np
 from laser_core.demographics import KaplanMeierEstimator
@@ -8,7 +36,65 @@ from tqdm import tqdm
 
 
 class NonDiseaseDeaths:
+    """
+    A class to model non-disease related deaths in a population.
+
+    Attributes:
+    -----------
+
+    model : object
+
+        The model object containing the population and parameters.
+
+    verbose : bool, optional
+
+        If True, enables verbose output (default is False).
+
+    Methods:
+    --------
+
+    __init__(self, model, verbose: bool = False):
+
+        Initializes the NonDiseaseDeaths class with the given model and verbosity.
+
+    on_birth(self, model, tick, istart, iend):
+
+        Handles the birth of new agents, setting their alive status and predicted date of death.
+
+    __call__(self, model, tick):
+
+        Executes the non-disease death process for the current tick, updating the population and death counts.
+
+    plot(self, fig: Figure = None):
+
+        Plots the cumulative non-disease deaths for the year 0 population.
+    """
+
     def __init__(self, model, verbose: bool = False):
+        """
+        Initialize the non-disease deaths component of the model.
+        Parameters:
+        model : object
+            The model object that contains the population and parameters.
+        verbose : bool, optional
+            If True, enables verbose output (default is False).
+        Attributes:
+        __name__ : str
+            The name of the component.
+        model : object
+            The model object that contains the population and parameters.
+        cumulative_deaths : numpy.ndarray
+            Array of cumulative deaths loaded from the mortality file.
+        dods : numpy.ndarray
+            Array of days of death for the population.
+        dobs : numpy.ndarray
+            Array of days of birth for the population.
+        model.estimator : KaplanMeierEstimator
+            Estimator for predicting age at death.
+        model.nddq : SortedQueue
+            Queue for managing non-disease deaths.
+        """
+
         self.__name__ = "non_disease_deaths"
         self.model = model
 
@@ -38,6 +124,19 @@ class NonDiseaseDeaths:
         return
 
     def on_birth(self, model, tick, istart, iend):
+        """
+        Handles the birth of new agents in the model.
+        This function updates the population's alive status and predicted date of death (dod) for newly born agents.
+        It also pushes agents with a date of death within the simulation's maximum ticks to the non-death-death queue (nddq).
+        Parameters:
+        model (object): The simulation model containing population and parameters.
+        tick (int): The current tick or time step in the simulation.
+        istart (int): The starting index of the newly born agents in the population array.
+        iend (int): The ending index of the newly born agents in the population array.
+        Returns:
+        None
+        """
+
         # newborns are alive and have a predicted date of death
         model.population.alive[istart:iend] = True
         model.population.dod[istart:iend] = 0  # temporarily set to 0 for the next line
@@ -53,6 +152,18 @@ class NonDiseaseDeaths:
         return
 
     def __call__(self, model, tick):
+        """
+        Update the model state for the given tick by processing the non-disease deaths queue.
+        This method updates the population and deaths counts for each node in the model
+        based on the non-disease deaths queue. It marks agents as dead and updates the
+        corresponding node's population and death counts.
+        Parameters:
+        model (object): The model object containing population and patches data.
+        tick (int): The current time step or tick in the simulation.
+        Returns:
+        None
+        """
+
         nodeids = model.population.nodeid[0 : model.population.count]
         node_population = model.patches.populations[tick, :]
         node_deaths = model.patches.deaths[tick, :]
@@ -79,6 +190,31 @@ class NonDiseaseDeaths:
         return
 
     def plot(self, fig: Figure = None):
+        """
+        Plots the cumulative non-disease deaths for the year 0 population.
+
+        Parameters:
+
+            fig (Figure, optional): A matplotlib Figure object. If None, a new figure is created. Defaults to None.
+
+        Returns:
+
+            None
+
+        Yields:
+
+            None
+
+        Notes:
+
+        - The function plots two lines:
+
+            1. The cumulative number of non-disease deaths over the years since birth, marked with red 'x'.
+            2. The expected cumulative deaths based on the model's estimator, marked with blue '+'.
+
+        - If no individuals are found born in the first year, a message is printed.
+        """
+
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Cumulative Non-Disease Deaths for Year 0 Population")
 

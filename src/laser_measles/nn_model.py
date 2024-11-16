@@ -1,4 +1,35 @@
-"""Nothern Nigeria Measles Model"""
+r"""
+Northern Nigeria Measles Model
+
+This script runs a simulation of measles dynamics in Northern Nigeria using a
+compartmental model. The model includes various components such as births,
+non-disease deaths, susceptibility, maternal antibodies, routine immunization,
+infection, incubation, and transmission.
+
+The script uses the Click library to handle command-line options for configuring
+the simulation parameters, including the number of ticks to run, random seed,
+verbosity, visualization options, output file, and parameter overrides.
+
+Functions:
+
+    run(\*\*kwargs): Main function to run the simulation with specified parameters.
+
+Command-line Options:
+
+    --nticks: Number of ticks to run the simulation (default: 365).
+    --seed: Random seed for reproducibility (default: 20241107).
+    --verbose: Print verbose output if set.
+    --viz: Display visualizations to help validate the model if set.
+    --pdf: Output visualization results as a PDF if set.
+    --output: Output file for results (default: None).
+    --params: JSON file with parameters (default: None).
+    --param: Additional parameter overrides (param:value or param=value).
+
+Usage:
+
+    Run the script from the command line with the desired options.
+    Example: ``python nn_model.py --nticks 365 --seed 20241107 --verbose --viz --pdf``
+"""
 
 import click
 import numpy as np
@@ -27,6 +58,27 @@ from laser_measles.utils import seed_infections_in_patch
 @click.option("--params", default=None, help="JSON file with parameters")
 @click.option("--param", "-p", multiple=True, help="Additional parameter overrides (param:value or param=value)")
 def run(**kwargs):
+    """
+    Run the measles simulation model with the given parameters.
+    This function initializes the model with the specified parameters, sets up the
+    components of the model, seeds initial infections, runs the simulation, and
+    optionally visualizes the results.
+
+    Parameters:
+
+        **kwargs: Arbitrary keyword arguments containing the parameters for the simulation.
+
+        Expected keys include:
+
+            - "verbose": bool, whether to print detailed information during the simulation.
+            - "viz": bool, whether to visualize the results after the simulation.
+            - "pdf": bool, whether to save the visualization as a PDF.
+
+    Returns:
+
+        None
+    """
+
     parameters = get_parameters(kwargs)
     scenario = get_scenario(parameters, parameters["verbose"])
     model = Model(scenario, parameters, name="northen nigeria measles")

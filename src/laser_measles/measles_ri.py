@@ -1,3 +1,26 @@
+"""
+This module implements the Routine Immunization (RI) process for a population model. It includes the initialization
+of RI coverage for patches, the assignment of MCV (Measles Containing Vaccine) status to agents, and the updating
+of RI timers for agents.
+
+Classes:
+    RoutineImmunization: Manages the routine immunization process, including initialization, updating RI timers,
+                         handling births, and plotting immunization status.
+
+Functions:
+    nb_update_ri_timers(count, ri_timers, susceptibility): Numba-optimized function to update RI timers and adjust
+                                                           susceptibility when timers expire.
+    set_mcv_status(model, istart, iend): Assigns MCV status to agents based on RI coverage and probabilities of MCV1
+                                         and MCV2 take.
+    set_mcv_timers(model, istart, iend): Sets the RI timers for agents based on their MCV status and predefined
+                                         time ranges for MCV1 and MCV2.
+
+Constants:
+    GET_MCV1: Constant representing the status of an agent who has received an effective MCV1 vaccination.
+    GET_MCV2: Constant representing the status of an agent who has received an effective MCV2 vaccination.
+    GET_NONE: Constant representing the status of an unvaccinated agent or an agent with ineffective vaccination.
+"""
+
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
@@ -5,7 +28,40 @@ from matplotlib.figure import Figure
 
 
 class RoutineImmunization:
+    """
+    A class to represent the routine immunization process within a model.
+    Attributes
+    ----------
+    model : object
+        The model instance to which this routine immunization belongs.
+    verbose : bool, optional
+        If True, enables verbose output (default is False).
+    Methods
+    -------
+    __call__(model, tick):
+        Updates the routine immunization timers for the population.
+    on_birth(model, _tick, istart, iend):
+        Initializes MCV status and ri_timer for newborns.
+    plot(fig=None):
+        Plots the distribution of MCV statuses in the population.
+    """
+
     def __init__(self, model, verbose: bool = False):
+        """
+        Initializes the routine immunization process for the model.
+        Args:
+            model: The model instance to which the routine immunization process is applied.
+            verbose (bool, optional): If True, enables verbose output. Defaults to False.
+        Attributes:
+            __name__ (str): The name of the routine immunization process.
+            model: The model instance to which the routine immunization process is applied.
+        Initializes:
+            - Adds a scalar property "ri_coverage" to the model's patches with dtype np.float32.
+            - Sets the "ri_coverage" for each patch based on a Poisson distribution around the specified parameter.
+            - Adds a scalar property "mcv" to the model's population with dtype np.uint8.
+            - Adds a scalar property "ri_timer" to the model's population with dtype np.uint16.
+        """
+
         self.__name__ = "routine_immunization"
         self.model = model
 
@@ -23,10 +79,37 @@ class RoutineImmunization:
         return
 
     def __call__(self, model, tick):
+        """
+        Updates the RI (Routine Immunization) timers for the population in the model.
+
+        Args:
+
+            model (object): The model containing the population data.
+            tick (int): The current time step or tick in the simulation.
+
+        Returns:
+
+            None
+        """
+
         nb_update_ri_timers(model.population.count, model.population.ri_timer, model.population.susceptibility)
         return
 
     def on_birth(self, model, _tick, istart, iend):
+        """
+        Handles the birth event in the model by setting the MCV (Measles Conjugate Vaccine) status
+        and initializing the MCV timers for the newborns.
+
+        Parameters:
+             model (object): The model instance containing the population data.
+            _tick (int): The current tick or time step in the simulation (unused in this function).
+            istart (int): The starting index of the newborns in the population array.
+            iend (int): The ending index of the newborns in the population array.
+
+        Returns:
+            None
+        """
+
         # newborns get an MCV status and ri_timer
         set_mcv_status(model, istart, iend)
         set_mcv_timers(model, istart, iend)
@@ -34,6 +117,22 @@ class RoutineImmunization:
         return
 
     def plot(self, fig: Figure = None):
+        """
+        Plots a pie chart representing the routine immunization status of the population.
+
+        Parameters:
+
+            fig (Figure, optional): A matplotlib Figure object to plot on. If None, a new figure is created.
+
+        Raises:
+
+            AssertionError: If the sum of unvaccinated, MCV1, and MCV2 individuals does not match the total number of individuals.
+
+        Yields:
+
+            None
+        """
+
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
         population = self.model.population
@@ -66,7 +165,7 @@ class RoutineImmunization:
 
 
 @nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True, cache=True)
-def nb_update_ri_timers(count, ri_timers, susceptibility):
+def nb_update_ri_timers(count, ri_timers, susceptibility):  # pragma: no cover
     for i in nb.prange(count):
         timer = ri_timers[i]
         if timer > 0:
@@ -85,6 +184,23 @@ GET_NONE = 0
 
 
 def set_mcv_status(model, istart, iend):
+    """
+    Set the MCV (Measles Conjugate Vaccine) status for a subset of the population.
+    This function assigns MCV1 or MCV2 status to individuals in the population based on
+    the given model's parameters and random draws. The MCV1 and MCV2 statuses are determined
+    by the coverage and probability of vaccine take specified in the model.
+
+    Parameters:
+
+        model (object): The model containing population and parameters for MCV coverage and take probabilities.
+        istart (int): The starting index of the population subset to update.
+        iend (int): The ending index (exclusive) of the population subset to update.
+
+    Returns:
+
+        None
+    """
+
     mcv1_cutoff = model.patches.ri_coverage * model.params.probability_mcv1_take  # probability of (MCV1 vaccination) _and_ (MCV1 take)
     mcv2_cutoff = (
         mcv1_cutoff + model.patches.ri_coverage * (1.0 - model.params.probability_mcv1_take) * model.params.probability_mcv2_take
@@ -103,6 +219,23 @@ def set_mcv_status(model, istart, iend):
 
 
 def set_mcv_timers(model, istart, iend):
+    """
+    Set the MCV (Measles Containing Vaccine) timers for a subset of the population in the model.
+    This function assigns random timer values for MCV1 and MCV2 vaccinations to individuals in the population
+    based on the specified start and end indices. The timer values are generated using the model's pseudo-random
+    number generator (PRNG) and are constrained within the start and end parameters for MCV1 and MCV2.
+
+    Parameters:
+
+        model (object): The model object containing the population and parameters.
+        istart (int): The starting index of the subset of the population.
+        iend (int): The ending index of the subset of the population.
+
+    Returns:
+
+        None
+    """
+
     count = iend - istart
     ri_timer_values_mcv1 = model.prng.integers(model.params.mcv1_start, model.params.mcv1_end, count).astype(
         model.population.ri_timer.dtype
@@ -115,13 +248,6 @@ def set_mcv_timers(model, istart, iend):
 
     mask_mcv1 = mcv == GET_MCV1
     mask_mcv2 = mcv == GET_MCV2
-    # mask_none = mcv == GET_NONE  # for validation
-    # if mask_mcv1.sum() == 0:
-    #     raise ValueError("Didn't find anyone with mcv set to GET_MCV1")
-    # if mask_mcv2.sum() == 0:
-    #     raise ValueError("Didn't find anyone with mcv set to GET_MCV2")
-    # if mask_none.sum() == 0:
-    #     raise ValueError("Didn't find anyone with mcv set to GET_NONE")
 
     timers = model.population.ri_timer[istart:iend]
     timers[mask_mcv1] = ri_timer_values_mcv1[mask_mcv1]

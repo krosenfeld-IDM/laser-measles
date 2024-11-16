@@ -1,3 +1,23 @@
+"""
+This module defines the Transmission class, which models the transmission of measles in a population.
+
+Classes:
+    Transmission: A class to model the transmission dynamics of measles within a population.
+
+Functions:
+    Transmission.__init__(self, model, verbose: bool = False) -> None:
+        Initializes the Transmission object with the given model and verbosity.
+
+    Transmission.__call__(self, model, tick) -> None:
+        Executes the transmission dynamics for a given model and tick.
+
+    Transmission.nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):
+        A Numba-compiled static method to update the transmission dynamics in parallel.
+
+    Transmission.plot(self, fig: Figure = None):
+        Plots the cases and incidence for the two largest patches in the model.
+"""
+
 import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
@@ -5,7 +25,51 @@ from matplotlib.figure import Figure
 
 
 class Transmission:
+    """
+    A class to model the transmission of measles in a population.
+
+    Attributes:
+    -----------
+
+    model : object
+
+        The model object containing the population and patches.
+
+    verbose : bool, optional
+
+        If True, enables verbose output (default is False).
+
+    Methods:
+    --------
+
+    __call__(model, tick):
+
+        Executes the transmission process for a given tick.
+
+    nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):
+
+        A static method that updates the transmission state using Numba for performance.
+
+    plot(fig=None):
+
+        Plots the cases and incidence for the two largest patches.
+    """
+
     def __init__(self, model, verbose: bool = False) -> None:
+        """
+        Initializes the transmission object.
+        Args:
+            model: The model object that contains the patches and parameters.
+            verbose (bool, optional): If True, enables verbose output. Defaults to False.
+        Attributes:
+            __name__ (str): The name of the transmission object.
+            model: The model object passed during initialization.
+        The model's patches are extended with the following properties:
+            - 'cases': A vector property with length equal to the number of ticks, dtype is uint32.
+            - 'forces': A scalar property with dtype float32.
+            - 'incidence': A vector property with length equal to the number of ticks, dtype is uint32.
+        """
+
         self.__name__ = "transmission"
         self.model = model
 
@@ -16,6 +80,20 @@ class Transmission:
         return
 
     def __call__(self, model, tick) -> None:
+        """
+        Simulate the transmission of measles for a given model at a specific tick.
+        This method updates the state of the model by simulating the spread of measles
+        through the population and patches. It calculates the contagion, handles the
+        migration of infections between patches, and updates the forces of infection
+        based on the effective transmission rate and seasonality factors. Finally, it
+        updates the transmission state of the population.
+        Parameters:
+        model (object): The model object containing the population, patches, and parameters.
+        tick (int): The current time step in the simulation.
+        Returns:
+        None
+        """
+
         patches = model.patches
         population = model.population
 
@@ -56,7 +134,7 @@ class Transmission:
         nogil=True,
         cache=True,
     )
-    def nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):
+    def nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):  # pragma: no cover
         for i in nb.prange(count):
             susceptibility = susceptibilities[i]
             if susceptibility > 0:
@@ -72,6 +150,20 @@ class Transmission:
         return
 
     def plot(self, fig: Figure = None):
+        """
+        Plots the cases and incidence for the two largest patches in the model.
+        This function creates a figure with four subplots:
+        - Cases for the largest patch
+        - Incidence for the largest patch
+        - Cases for the second largest patch
+        - Incidence for the second largest patch
+        If no figure is provided, a new figure is created with a size of 12x9 inches and a DPI of 128.
+        Parameters:
+        fig (Figure, optional): A Matplotlib Figure object to plot on. If None, a new figure is created.
+        Yields:
+        None
+        """
+
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Cases and Incidence for Two Largest Patches")
 

@@ -8,10 +8,10 @@ Contents
    readme
    installation
    usage
-   reference/index
    contributing
    authors
    changelog
+   reference/modules
 
 Indices and tables
 ==================

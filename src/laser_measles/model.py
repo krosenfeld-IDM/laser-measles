@@ -1,3 +1,51 @@
+"""
+This module defines the `Model` class for simulating the spread of measles using a gravity model for migration and
+demographic data for population initialization.
+
+Classes:
+    Model: A class to represent the measles simulation model.
+
+Imports:
+    - datetime: For handling date and time operations.
+    - click: For command-line interface utilities.
+    - numpy as np: For numerical operations.
+    - pandas as pd: For data manipulation and analysis.
+    - laser_core.demographics: For demographic data handling.
+    - laser_core.laserframe: For handling laser frame data structures.
+    - laser_core.migration: For migration modeling.
+    - laser_core.propertyset: For handling property sets.
+    - laser_core.random: For random number generation.
+    - matplotlib.pyplot as plt: For plotting.
+    - matplotlib.backends.backend_pdf: For PDF generation.
+    - matplotlib.figure: For figure handling.
+    - tqdm: For progress bar visualization.
+    - laser_measles.measles_births: For handling measles birth data.
+    - laser_measles.utils: For utility functions.
+
+Model Class:
+    Methods:
+        __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "measles") -> None:
+            Initializes the model with the given scenario and parameters.
+
+        components(self) -> list:
+            Gets the list of components in the model.
+
+        components(self, components: list) -> None:
+            Sets the list of components in the model and initializes instances and phases.
+
+        __call__(self, model, tick: int) -> None:
+            Updates the model for a given tick.
+
+        run(self) -> None:
+            Runs the model for the specified number of ticks.
+
+        visualize(self, pdf: bool = True) -> None:
+            Generates visualizations of the model's results, either displaying them or saving to a PDF.
+
+        plot(self, fig: Figure = None):
+            Generates plots for the scenario patches and populations, distribution of day of birth, and update phase times.
+"""
+
 from datetime import datetime
 
 import click
@@ -21,7 +69,65 @@ from laser_measles.utils import calc_distances
 
 
 class Model:
+    """
+    A class to represent a simulation model for measles spread.
+    Attributes
+    ----------
+    scenario : pd.DataFrame
+        A DataFrame containing the scenario data including population, latitude, and longitude.
+    params : PropertySet
+        A set of parameters for the model.
+    name : str
+        The name of the model, default is "measles".
+    prng : np.random.Generator
+        A pseudo-random number generator initialized with a seed.
+    patches : LaserFrame
+        A frame containing patches with population and network data.
+    population : LaserFrame
+        A frame containing the population data.
+    components : list
+        A list of components in the model.
+    instances : list
+        A list of instantiated components.
+    phases : list
+        A list of callable phases of the model.
+    metrics : list
+        A list to store timing metrics for each tick.
+    tinit : datetime
+        The initialization time of the model.
+    tstart : datetime
+        The start time of the model run.
+    tfinish : datetime
+        The finish time of the model run.
+    Methods
+    -------
+    __init__(scenario: pd.DataFrame, parameters: PropertySet, name: str = "measles") -> None
+        Initializes the model with the given scenario and parameters.
+    components(self) -> list
+        Gets the list of components.
+    components(self, components: list) -> None
+        Sets the list of components and initializes instances and phases.
+    __call__(self, model, tick: int) -> None
+        Updates the model for a given tick.
+    run(self) -> None
+        Runs the model for the specified number of ticks.
+    visualize(self, pdf: bool = True) -> None
+        Visualizes the model output, optionally saving to a PDF.
+    plot(self, fig: Figure = None)
+        Generates plots for the scenario patches, population distribution, and update phase times.
+    """
+
     def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "measles") -> None:
+        """
+        Initialize the measles model with the given scenario and parameters.
+        Args:
+            scenario (pd.DataFrame): A DataFrame containing the scenario data, including population, latitude, and longitude.
+            parameters (PropertySet): A set of parameters for the model, including seed, nticks, k, a, b, c, max_frac, cbr, verbose, and pyramid_file.
+            name (str, optional): The name of the model. Defaults to "measles".
+        Returns:
+            None
+        """
+
         self.tinit = datetime.now(tz=None)  # noqa: DTZ005
         click.echo(f"{self.tinit}: Creating the {name} model…")
         self.scenario = scenario
@@ -96,10 +202,26 @@ class Model:
 
     @property
     def components(self) -> list:
+        """
+        Retrieve the list of model components.
+        Returns:
+            list: A list containing the components.
+        """
+
         return self._components
 
     @components.setter
     def components(self, components: list) -> None:
+        """
+        Sets up the components of the model and initializes instances and phases.
+        This method takes a list of components, initializes them, and categorizes them into instances and phases.
+        It also integrates components that have an `on_birth` method with the `Births` component.
+        Args:
+            components (list): A list of component classes to be initialized and integrated into the model.
+        Returns:
+            None
+        """
+
         self._components = components
         self.instances = [self]  # instantiated instances of components
         self.phases = [self]  # callable phases of the model
@@ -117,10 +239,37 @@ class Model:
         return
 
     def __call__(self, model, tick: int) -> None:
+        """
+        Updates the population of patches for the next tick.
+
+        Args:
+
+            model: The model containing the patches and their populations.
+            tick (int): The current time step or tick.
+
+        Returns:
+
+            None
+        """
+
         model.patches.populations[tick + 1, :] = model.patches.populations[tick, :]
         return
 
     def run(self) -> None:
+        """
+        Execute the model for a specified number of ticks, recording the time taken for each phase.
+        This method initializes the start time, iterates over the number of ticks specified in the model parameters,
+        and for each tick, it executes each phase of the model while recording the time taken for each phase.
+        The metrics for each tick are stored in a list. After completing all ticks, it records the finish time and,
+        if verbose mode is enabled, prints a summary of the timing metrics.
+        Attributes:
+            tstart (datetime): The start time of the model execution.
+            tfinish (datetime): The finish time of the model execution.
+            metrics (list): A list of timing metrics for each tick and phase.
+        Returns:
+            None
+        """
+
         self.tstart = datetime.now(tz=None)  # noqa: DTZ005
         click.echo(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
 
@@ -151,6 +300,18 @@ class Model:
         return
 
     def visualize(self, pdf: bool = True) -> None:
+        """
+        Visualize the instances either by displaying plots or saving them to a PDF file.
+
+        Parameters:
+
+            pdf (bool): If True, save the plots to a PDF file. If False, display the plots interactively. Default is True.
+
+        Returns:
+
+            None
+        """
+
         if not pdf:
             for instance in self.instances:
                 for _plot in instance.plot():
@@ -170,6 +331,23 @@ class Model:
         return
 
     def plot(self, fig: Figure = None):
+        """
+        Plots various visualizations related to the scenario and population data.
+
+        Parameters:
+
+            fig (Figure, optional): A matplotlib Figure object to use for plotting. If None, a new figure will be created.
+
+        Yields:
+
+            None: This function uses a generator to yield control back to the caller after each plot is created.
+        The function generates three plots:
+
+            1. A scatter plot of the scenario patches and populations.
+            2. A histogram of the distribution of the day of birth for the initial population.
+            3. A pie chart showing the distribution of update phase times.
+        """
+
         _fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         _fig.suptitle("Scenario Patches and Populations")
         if "geometry" in self.scenario.columns:

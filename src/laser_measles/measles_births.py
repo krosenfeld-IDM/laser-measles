@@ -1,3 +1,34 @@
+"""
+This module defines the Births class, which is responsible for simulating births in a population model.
+
+Classes:
+    Births: Manages the birth process within a population model, including initializing births,
+            updating population data, and plotting birth statistics.
+
+Usage:
+    The Births class requires a model with a `population` attribute that has a `dob` attribute.
+    It calculates the number of births based on the model's parameters and updates the population
+    accordingly. It also provides methods to plot birth statistics.
+
+Example:
+    model = YourModelClass()
+    births = Births(model)
+    births(model, tick)
+    births.plot()
+
+Attributes:
+    model (object): The population model.
+    _initializers (list): List of initializers to be called on birth.
+    _metrics (list): List to store timing metrics for initializers.
+
+Methods:
+    __init__(self, model, verbose: bool = False): Initializes the Births class with the given model.
+    initializers(self): Returns the list of initializers.
+    __call__(self, model, tick) -> None: Simulates the birth process for the given tick.
+    plot(self, fig: Figure = None): Plots birth statistics in the top 5 most populous patches and
+                                    initializer times.
+"""
+
 from datetime import datetime
 
 import numpy as np
@@ -7,7 +38,34 @@ from matplotlib.figure import Figure
 
 
 class Births:
+    """
+    A class to handle the birth events in a population model.
+    Attributes:
+        model: The model instance containing population and parameters.
+        verbose (bool): Flag to enable verbose output. Default is False.
+        __name__ (str): Name of the class instance.
+        _initializers (list): List of initializers to be called on birth events.
+        _metrics (list): List to store timing metrics for initializers.
+    Methods:
+        initializers:
+            Property to get the list of initializers.
+        __call__(model, tick):
+            Executes the birth process for the given model at the specified tick.
+        plot(fig=None):
+            Plots the births data and initializer times.
+    """
+
     def __init__(self, model, verbose: bool = False):
+        """
+        Initialize the Births class.
+        Parameters:
+        model (object): The model object which must have a `population` attribute.
+        verbose (bool, optional): If True, enables verbose output. Defaults to False.
+        Raises:
+        AssertionError: If the model does not have a `population` attribute.
+        AssertionError: If the model's population does not have a `dob` attribute.
+        """
+
         assert getattr(model, "population", None) is not None, "Births requires the model to have a `population` attribute"
         assert getattr(model.population, "dob", None) is not None, "Births requires the model population to have a `dob` attribute"
 
@@ -24,9 +82,40 @@ class Births:
 
     @property
     def initializers(self):
+        """
+        Returns the initializers for the measles births.
+        This method retrieves the initializers that are used to set up the
+        initial state or configuration for the measles births.
+        Returns:
+            list: A list of initializers.
+        """
+
         return self._initializers
 
     def __call__(self, model, tick) -> None:
+        """
+        Simulate the birth process for a given model at a specific tick (time step).
+
+        Args:
+
+            model: The simulation model containing patches, population, and parameters.
+            tick: The current time step in the simulation.
+
+        Returns:
+
+            None
+
+        This method performs the following steps:
+
+            1. Calculates the day of the year (doy) and the current year based on the tick.
+            2. On the first day of the year, it generates annual births for each patch using a Poisson distribution.
+            3. Calculates the number of births for the current day.
+            4. Adds the newborns to the population and sets their date of birth.
+            5. Assigns node IDs to the newborns.
+            6. Calls any additional initializers for the newborns and records the timing of these initializations.
+            7. Updates the population counts for the next tick with the new births.
+        """
+
         doy = tick % 365 + 1  # day of year 1…365
         year = tick // 365
 
@@ -61,6 +150,14 @@ class Births:
         return
 
     def plot(self, fig: Figure = None):
+        """
+        Plots the births in the top 5 most populous patches and a pie chart of birth initializer times.
+        Parameters:
+        fig (Figure, optional): A matplotlib Figure object. If None, a new figure will be created. Defaults to None.
+        Yields:
+        None: This function yields twice to allow for intermediate plotting steps.
+        """
+
         _fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         _fig.suptitle("Births in Top 5 Most Populous Patches")
 

@@ -59,8 +59,8 @@ Changelog = "https://github.com/InstituteforDiseaseModeling/laser-measles/blob/m
 
 [project.scripts]
 cli = "laser_measles.cli:run"
-nnmm = "laser_measles.nn_model:run"
-measles = "laser_measles.measles_model:run"
+nigeria = "laser_measles.nigeria.model:run"
+measles = "laser_measles.generic.model:run"
 
 [tool.ruff]
 extend-exclude = ["static", "ci/templates"]

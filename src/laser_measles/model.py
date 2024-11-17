@@ -63,7 +63,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 from tqdm import tqdm
 
-from laser_measles.measles_births import Births
+from laser_measles import Births
 from laser_measles.utils import calc_capacity
 from laser_measles.utils import calc_distances
 

@@ -27,17 +27,17 @@ Usage:
 
 import click
 
-from laser_measles.measles_births import Births
-from laser_measles.measles_incubation import Incubation
-from laser_measles.measles_infection import Infection
-from laser_measles.measles_maternalabs import MaternalAntibodies
-from laser_measles.measles_metapop import get_scenario
-from laser_measles.measles_nddeaths import NonDiseaseDeaths
-from laser_measles.measles_params import get_parameters
-from laser_measles.measles_ri import RoutineImmunization
-from laser_measles.measles_susceptibility import Susceptibility
-from laser_measles.measles_transmission import Transmission
-from laser_measles.model import Model
+from laser_measles import Births
+from laser_measles import Incubation
+from laser_measles import Infection
+from laser_measles import MaternalAntibodies
+from laser_measles import Model
+from laser_measles import NonDiseaseDeaths
+from laser_measles import RoutineImmunization
+from laser_measles import Susceptibility
+from laser_measles import Transmission
+from laser_measles.generic import get_parameters
+from laser_measles.generic import get_scenario
 from laser_measles.utils import seed_infections_in_patch
 
 

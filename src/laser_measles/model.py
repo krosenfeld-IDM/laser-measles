@@ -99,32 +99,20 @@ class Model:
         The start time of the model run.
     tfinish : datetime
         The finish time of the model run.
-    Methods
-    -------
-    __init__(scenario: pd.DataFrame, parameters: PropertySet, name: str = "measles") -> None
-        Initializes the model with the given scenario and parameters.
-    components(self) -> list
-        Gets the list of components.
-    components(self, components: list) -> None
-        Sets the list of components and initializes instances and phases.
-    __call__(self, model, tick: int) -> None
-        Updates the model for a given tick.
-    run(self) -> None
-        Runs the model for the specified number of ticks.
-    visualize(self, pdf: bool = True) -> None
-        Visualizes the model output, optionally saving to a PDF.
-    plot(self, fig: Figure = None)
-        Generates plots for the scenario patches, population distribution, and update phase times.
     """
 
     def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "measles") -> None:
         """
         Initialize the measles model with the given scenario and parameters.
+
         Args:
+
             scenario (pd.DataFrame): A DataFrame containing the scenario data, including population, latitude, and longitude.
             parameters (PropertySet): A set of parameters for the model, including seed, nticks, k, a, b, c, max_frac, cbr, verbose, and pyramid_file.
             name (str, optional): The name of the model. Defaults to "measles".
+
         Returns:
+
             None
         """
 

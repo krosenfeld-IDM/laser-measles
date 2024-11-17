@@ -43,7 +43,6 @@ class Births:
 
         model: The model instance containing population and parameters.
         verbose (bool): Flag to enable verbose output. Default is False.
-        __name__ (str): Name of the class instance.
         _initializers (list): List of initializers to be called on birth events.
         _metrics (list): List to store timing metrics for initializers.
     """
@@ -66,7 +65,6 @@ class Births:
         assert getattr(model, "population", None) is not None, "Births requires the model to have a `population` attribute"
         assert getattr(model.population, "dob", None) is not None, "Births requires the model population to have a `dob` attribute"
 
-        self.__name__ = "births"
         self.model = model
 
         nyears = (model.params.nticks + 364) // 365

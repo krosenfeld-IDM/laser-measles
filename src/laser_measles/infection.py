@@ -83,7 +83,6 @@ class Infection:
 
         Attributes:
 
-            __name__ (str): The name of the infection instance.
             model: The model object that contains the population.
 
         Side Effects:
@@ -92,7 +91,6 @@ class Infection:
             Calls the nb_set_itimers method to initialize the itimer values for the population.
         """
 
-        self.__name__ = "infection"
         self.model = model
 
         model.population.add_scalar_property("itimer", dtype=np.uint8, default=0)

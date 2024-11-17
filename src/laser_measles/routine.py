@@ -4,10 +4,12 @@ of RI coverage for patches, the assignment of MCV (Measles Containing Vaccine) s
 of RI timers for agents.
 
 Classes:
+
     RoutineImmunization: Manages the routine immunization process, including initialization, updating RI timers,
                          handling births, and plotting immunization status.
 
 Functions:
+
     nb_update_ri_timers(count, ri_timers, susceptibility): Numba-optimized function to update RI timers and adjust
                                                            susceptibility when timers expire.
     set_mcv_status(model, istart, iend): Assigns MCV status to agents based on RI coverage and probabilities of MCV1
@@ -16,6 +18,7 @@ Functions:
                                          time ranges for MCV1 and MCV2.
 
 Constants:
+
     GET_MCV1: Constant representing the status of an agent who has received an effective MCV1 vaccination.
     GET_MCV2: Constant representing the status of an agent who has received an effective MCV2 vaccination.
     GET_NONE: Constant representing the status of an unvaccinated agent or an agent with ineffective vaccination.
@@ -30,39 +33,55 @@ from matplotlib.figure import Figure
 class RoutineImmunization:
     """
     A class to represent the routine immunization process within a model.
+
     Attributes
     ----------
+
     model : object
+
         The model instance to which this routine immunization belongs.
+
     verbose : bool, optional
+
         If True, enables verbose output (default is False).
+
     Methods
     -------
+
     __call__(model, tick):
+
         Updates the routine immunization timers for the population.
+
     on_birth(model, _tick, istart, iend):
+
         Initializes MCV status and ri_timer for newborns.
+
     plot(fig=None):
+
         Plots the distribution of MCV statuses in the population.
     """
 
     def __init__(self, model, verbose: bool = False):
         """
         Initializes the routine immunization process for the model.
+
         Args:
+
             model: The model instance to which the routine immunization process is applied.
             verbose (bool, optional): If True, enables verbose output. Defaults to False.
+
         Attributes:
-            __name__ (str): The name of the routine immunization process.
+
             model: The model instance to which the routine immunization process is applied.
+
         Initializes:
+
             - Adds a scalar property "ri_coverage" to the model's patches with dtype np.float32.
             - Sets the "ri_coverage" for each patch based on a Poisson distribution around the specified parameter.
             - Adds a scalar property "mcv" to the model's population with dtype np.uint8.
             - Adds a scalar property "ri_timer" to the model's population with dtype np.uint16.
         """
 
-        self.__name__ = "routine_immunization"
         self.model = model
 
         # Coverage by patch
@@ -92,7 +111,21 @@ class RoutineImmunization:
             None
         """
 
-        nb_update_ri_timers(model.population.count, model.population.ri_timer, model.population.susceptibility)
+        self.nb_update_ri_timers(model.population.count, model.population.ri_timer, model.population.susceptibility)
+        return
+
+    @staticmethod
+    @nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True, cache=True)
+    def nb_update_ri_timers(count, ri_timers, susceptibility):  # pragma: no cover
+        for i in nb.prange(count):
+            timer = ri_timers[i]
+            if timer > 0:
+                timer -= 1
+                ri_timers[i] = timer
+                if timer == 0:
+                    # When timer expires, vaccinated agents become immune
+                    susceptibility[i] = 0
+
         return
 
     def on_birth(self, model, _tick, istart, iend):
@@ -162,20 +195,6 @@ class RoutineImmunization:
 
         yield
         return
-
-
-@nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True, cache=True)
-def nb_update_ri_timers(count, ri_timers, susceptibility):  # pragma: no cover
-    for i in nb.prange(count):
-        timer = ri_timers[i]
-        if timer > 0:
-            timer -= 1
-            ri_timers[i] = timer
-            if timer == 0:
-                # When timer expires, vaccinated agents become immune
-                susceptibility[i] = 0
-
-    return
 
 
 GET_MCV1 = 1

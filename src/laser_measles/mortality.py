@@ -73,29 +73,44 @@ class NonDiseaseDeaths:
     def __init__(self, model, verbose: bool = False):
         """
         Initialize the non-disease deaths component of the model.
+
         Parameters:
+
         model : object
+
             The model object that contains the population and parameters.
+
         verbose : bool, optional
+
             If True, enables verbose output (default is False).
+
         Attributes:
-        __name__ : str
-            The name of the component.
-        model : object
-            The model object that contains the population and parameters.
-        cumulative_deaths : numpy.ndarray
-            Array of cumulative deaths loaded from the mortality file.
-        dods : numpy.ndarray
-            Array of days of death for the population.
-        dobs : numpy.ndarray
-            Array of days of birth for the population.
-        model.estimator : KaplanMeierEstimator
-            Estimator for predicting age at death.
-        model.nddq : SortedQueue
-            Queue for managing non-disease deaths.
+
+            model : object
+
+                The model object that contains the population and parameters.
+
+            cumulative_deaths : numpy.ndarray
+
+                Array of cumulative deaths loaded from the mortality file.
+
+            dods : numpy.ndarray
+
+                Array of days of death for the population.
+
+            dobs : numpy.ndarray
+
+                Array of days of birth for the population.
+
+            model.estimator : KaplanMeierEstimator
+
+                Estimator for predicting age at death.
+
+            model.nddq : SortedQueue
+
+                Queue for managing non-disease deaths.
         """
 
-        self.__name__ = "non_disease_deaths"
         self.model = model
 
         model.population.add_scalar_property("alive", dtype=bool, default=True)

@@ -2,19 +2,25 @@
 This module defines the Transmission class, which models the transmission of measles in a population.
 
 Classes:
+
     Transmission: A class to model the transmission dynamics of measles within a population.
 
 Functions:
+
     Transmission.__init__(self, model, verbose: bool = False) -> None:
+
         Initializes the Transmission object with the given model and verbosity.
 
     Transmission.__call__(self, model, tick) -> None:
+
         Executes the transmission dynamics for a given model and tick.
 
     Transmission.nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):
+
         A Numba-compiled static method to update the transmission dynamics in parallel.
 
     Transmission.plot(self, fig: Figure = None):
+
         Plots the cases and incidence for the two largest patches in the model.
 """
 
@@ -58,19 +64,23 @@ class Transmission:
     def __init__(self, model, verbose: bool = False) -> None:
         """
         Initializes the transmission object.
+
         Args:
+
             model: The model object that contains the patches and parameters.
             verbose (bool, optional): If True, enables verbose output. Defaults to False.
+
         Attributes:
-            __name__ (str): The name of the transmission object.
+
             model: The model object passed during initialization.
+
         The model's patches are extended with the following properties:
+
             - 'cases': A vector property with length equal to the number of ticks, dtype is uint32.
             - 'forces': A scalar property with dtype float32.
             - 'incidence': A vector property with length equal to the number of ticks, dtype is uint32.
         """
 
-        self.__name__ = "transmission"
         self.model = model
 
         model.patches.add_vector_property("cases", length=model.params.nticks, dtype=np.uint32)

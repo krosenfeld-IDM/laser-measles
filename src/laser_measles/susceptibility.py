@@ -3,14 +3,16 @@ This module defines the Susceptibility class and associated functions for managi
 the susceptibility of a population to measles based on age.
 
 Classes:
+
     Susceptibility: Manages the susceptibility property of a population and provides methods for
                     updating and plotting susceptibility data.
 
 Functions:
-    initialize_susceptibility(count, dob, susceptibility):
+
+    nb_initialize_susceptibility(count, dob, susceptibility):
         Initializes the susceptibility of individuals in the population based on their date of birth.
 
-    set_susceptibility(istart, iend, susceptibility, value):
+    nb_set_susceptibility(istart, iend, susceptibility, value):
         Sets the susceptibility of a range of individuals in the population to a specified value.
 """
 
@@ -23,19 +25,31 @@ from matplotlib.figure import Figure
 class Susceptibility:
     """
     A class to represent the susceptibility of a population in a model.
+
     Attributes
     ----------
+
     model : object
+
         The model object containing the population data.
+
     verbose : bool, optional
+
         A flag to enable verbose output (default is False).
+
     Methods
     -------
+
     __call__(model, tick):
+
         Placeholder method for calling the object.
+
     on_birth(model, _tick, istart, iend):
+
         Updates the susceptibility of newborns in the population.
+
     plot(fig: Figure = None):
+
         Plots the susceptibility distribution by age.
     """
 
@@ -43,25 +57,40 @@ class Susceptibility:
         """
         Initialize the susceptibility component of the model.
         Parameters:
-        model : object
-            The model object that contains the population data.
-        verbose : bool, optional
-            If True, enables verbose output (default is False).
+            model : object
+                The model object that contains the population data.
+            verbose : bool, optional
+                If True, enables verbose output (default is False).
         Attributes:
-        __name__ : str
-            The name of the component, set to "susceptibility".
-        model : object
-            The model object passed to the initializer.
+            model : object
+                The model object passed to the initializer.
         The method also adds a scalar property "susceptibility" to the model's population
         with a default value of 1 and initializes the susceptibility values based on the
         population count, date of birth (dob), and susceptibility attributes.
         """
 
-        self.__name__ = "susceptibility"
         self.model = model
 
         model.population.add_scalar_property("susceptibility", dtype=np.uint8, default=1)
-        initialize_susceptibility(model.population.count, model.population.dob, model.population.susceptibility)
+        self.nb_initialize_susceptibility(model.population.count, model.population.dob, model.population.susceptibility)
+
+        return
+
+    @staticmethod
+    @nb.njit((nb.uint32, nb.int32[:], nb.uint8[:]), parallel=True, cache=True)
+    def nb_initialize_susceptibility(count, dob, susceptibility) -> None:  # pragma: no cover
+        five_years_ago = -5 * 365
+        for i in nb.prange(count):
+            # 5 y.o. and older are _not_ susceptible (dobs are negative)
+            susceptibility[i] = 0 if dob[i] < five_years_ago else 1
+
+        return
+
+    @staticmethod
+    @nb.njit((nb.uint32, nb.uint32, nb.uint8[:], nb.uint8), parallel=True, cache=True)
+    def nb_set_susceptibility(istart, iend, susceptibility, value) -> None:  # pragma: no cover
+        for i in nb.prange(istart, iend):
+            susceptibility[i] = value
 
         return
 
@@ -93,7 +122,7 @@ class Susceptibility:
         """
 
         # newborns are _not_ susceptible
-        # set_susceptibility(istart, iend, model.population.susceptibility, 0)
+        # nb_set_susceptibility(istart, iend, model.population.susceptibility, 0)
         model.population.susceptibility[istart:iend] = 0
 
         return
@@ -117,21 +146,3 @@ class Susceptibility:
 
         yield
         return
-
-
-@nb.njit((nb.uint32, nb.int32[:], nb.uint8[:]), parallel=True, cache=True)
-def initialize_susceptibility(count, dob, susceptibility) -> None:  # pragma: no cover
-    five_years_ago = -5 * 365
-    for i in nb.prange(count):
-        # 5 y.o. and older are _not_ susceptible (dobs are negative)
-        susceptibility[i] = 0 if dob[i] < five_years_ago else 1
-
-    return
-
-
-@nb.njit((nb.uint32, nb.uint32, nb.uint8[:], nb.uint8), parallel=True, cache=True)
-def set_susceptibility(istart, iend, susceptibility, value) -> None:  # pragma: no cover
-    for i in nb.prange(istart, iend):
-        susceptibility[i] = value
-
-    return

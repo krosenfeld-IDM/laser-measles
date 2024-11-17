@@ -83,7 +83,6 @@ class Incubation:
 
         Attributes:
 
-            __name__ (str): The name of the process, set to "incubation".
             model: The model instance passed to the constructor.
 
         Notes:
@@ -93,7 +92,6 @@ class Incubation:
             There is a TODO to verify the "itimer" property on the population.
         """
 
-        self.__name__ = "incubation"
         self.model = model
 
         model.population.add_scalar_property("etimer", dtype=np.uint8, default=0)

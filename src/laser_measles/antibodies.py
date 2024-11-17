@@ -2,12 +2,11 @@
 This module defines the MaternalAntibodies class and the nb_update_ma_timers function for simulating the presence of maternal antibodies in a population model.
 
 Classes:
+
     MaternalAntibodies: Manages the maternal antibodies for a population model, including initialization, updates, and plotting.
 
-Functions:
-    nb_update_ma_timers(count, ma_timers, susceptibility): Numba-optimized function to update maternal antibody timers and susceptibility status for a population.
-
 Usage:
+
     The MaternalAntibodies class should be instantiated with a model object and can be called to update the model at each tick. It also provides a method to handle newborns and a method to plot the current state of maternal antibodies in the population.
 """
 
@@ -31,38 +30,27 @@ class MaternalAntibodies:
     verbose : bool, optional
 
         If True, enables verbose output (default is False).
-
-    Methods:
-    --------
-
-    __call__(model, tick) -> None
-
-        Updates maternal antibody timers and susceptibility for the population at each tick.
-
-    on_birth(model, _tick, istart, iend) -> None
-
-        Sets the susceptibility and maternal antibody timer for newborns.
-
-    plot(fig: Figure = None)
-
-        Plots the distribution of maternal antibodies among infants.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:
         """
         Initialize the maternal antibodies component of the model.
+
         Args:
+
             model: The model instance to which this component belongs.
             verbose (bool, optional): If True, enables verbose output. Defaults to False.
+
         Attributes:
-            __name__ (str): The name of the component, set to "maternal_antibodies".
+
             model: The model instance to which this component belongs.
+
         Notes:
+
             This initializer also adds a scalar property "ma_timer" to the model's population,
             which is used to track the maternal antibodies timer for each agent.
         """
 
-        self.__name__ = "maternal_antibodies"
         self.model = model
 
         # TODO - initialize existing agents with maternal antibodies
@@ -86,7 +74,20 @@ class MaternalAntibodies:
             None
         """
 
-        nb_update_ma_timers(model.population.count, model.population.ma_timer, model.population.susceptibility)
+        self.nb_update_ma_timers(model.population.count, model.population.ma_timer, model.population.susceptibility)
+        return
+
+    @staticmethod
+    @nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:]), parallel=True, cache=True)
+    def nb_update_ma_timers(count, ma_timers, susceptibility):  # pragma: no cover
+        for i in nb.prange(count):
+            timer = ma_timers[i]
+            if timer > 0:
+                timer -= 1
+                ma_timers[i] = timer
+                if timer == 0:
+                    susceptibility[i] = 1
+
         return
 
     def on_birth(self, model, _tick, istart, iend) -> None:
@@ -133,16 +134,3 @@ class MaternalAntibodies:
 
         yield
         return
-
-
-@nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:]), parallel=True, cache=True)
-def nb_update_ma_timers(count, ma_timers, susceptibility):  # pragma: no cover
-    for i in nb.prange(count):
-        timer = ma_timers[i]
-        if timer > 0:
-            timer -= 1
-            ma_timers[i] = timer
-            if timer == 0:
-                susceptibility[i] = 1
-
-    return

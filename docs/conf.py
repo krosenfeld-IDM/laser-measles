@@ -9,7 +9,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
 ]
-source_suffix = ".rst"
+source_suffix = {".rst": "restructuredtext"}
 master_doc = "index"
 project = "laser_measles"
 year = "2024"

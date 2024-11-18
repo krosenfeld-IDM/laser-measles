@@ -8,20 +8,8 @@ Functions:
 
     get_parameters(kwargs) -> PropertySet:
 
-        Initializes and returns a `PropertySet` object with default parameters, optionally overridden by parameters
-        from a JSON file and/or command line arguments.
-
-Classes:
-
-    PropertySet: A class from the `laser_core.propertyset` module used to store and manage simulation parameters.
-
-Dependencies:
-
-    - re
-    - pathlib.Path
-    - click
-    - numpy as np
-    - laser_core.propertyset.PropertySet
+        Initializes and returns a `PropertySet` object with default parameters,
+        optionally overridden by parameters from a JSON file and/or command line arguments.
 """
 
 import re
@@ -34,7 +22,7 @@ from laser_core.propertyset import PropertySet
 
 def get_parameters(kwargs) -> PropertySet:
     """
-    Generate a set of parameters for the measles simulation.
+    Generate a set of parameters for the generic measles simulation.
 
     This function initializes default parameters for the simulation, including meta parameters,
     measles-specific parameters, network parameters, and routine immunization parameters. It then

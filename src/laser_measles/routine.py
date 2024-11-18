@@ -32,33 +32,7 @@ from matplotlib.figure import Figure
 
 class RoutineImmunization:
     """
-    A class to represent the routine immunization process within a model.
-
-    Attributes
-    ----------
-
-    model : object
-
-        The model instance to which this routine immunization belongs.
-
-    verbose : bool, optional
-
-        If True, enables verbose output (default is False).
-
-    Methods
-    -------
-
-    __call__(model, tick):
-
-        Updates the routine immunization timers for the population.
-
-    on_birth(model, _tick, istart, iend):
-
-        Initializes MCV status and ri_timer for newborns.
-
-    plot(fig=None):
-
-        Plots the distribution of MCV statuses in the population.
+    A component to handle the routine immunization process within a model.
     """
 
     def __init__(self, model, verbose: bool = False):
@@ -99,7 +73,9 @@ class RoutineImmunization:
 
     def __call__(self, model, tick):
         """
-        Updates the RI (Routine Immunization) timers for the population in the model.
+        Updates (decrements) the RI (Routine Immunization) timers for the population in the model.
+
+        Sets susceptibility to 0 for agents when their RI timers hit 0.
 
         Args:
 
@@ -117,6 +93,7 @@ class RoutineImmunization:
     @staticmethod
     @nb.njit((nb.uint32, nb.uint16[:], nb.uint8[:]), parallel=True, cache=True)
     def nb_update_ri_timers(count, ri_timers, susceptibility):  # pragma: no cover
+        """Numba compiled function to check and update routine immunization timers for the population in parallel."""
         for i in nb.prange(count):
             timer = ri_timers[i]
             if timer > 0:
@@ -130,16 +107,20 @@ class RoutineImmunization:
 
     def on_birth(self, model, _tick, istart, iend):
         """
-        Handles the birth event in the model by setting the MCV (Measles Conjugate Vaccine) status
-        and initializing the MCV timers for the newborns.
+        Handles the birth event in the model by setting the MCV (Measles
+        Conjugate Vaccine) status (effective MCV1, effective MCV2, or
+        unvaccinated/ineffective vaccination) and initializing the MCV timers
+        for the newborns.
 
         Parameters:
-             model (object): The model instance containing the population data.
-            _tick (int): The current tick or time step in the simulation (unused in this function).
+
+            model (object): The model instance containing the population data.
+            tick (int): The current tick or time step in the simulation (unused in this function).
             istart (int): The starting index of the newborns in the population array.
             iend (int): The ending index of the newborns in the population array.
 
         Returns:
+
             None
         """
 
@@ -151,7 +132,9 @@ class RoutineImmunization:
 
     def plot(self, fig: Figure = None):
         """
-        Plots a pie chart representing the routine immunization status of the population.
+        Plots a pie chart representing the routine immunization status of the
+        population born during the simulation (initial agent population does not
+        have MCV status computed or tracked).
 
         Parameters:
 
@@ -205,9 +188,10 @@ GET_NONE = 0
 def set_mcv_status(model, istart, iend):
     """
     Set the MCV (Measles Conjugate Vaccine) status for a subset of the population.
-    This function assigns MCV1 or MCV2 status to individuals in the population based on
-    the given model's parameters and random draws. The MCV1 and MCV2 statuses are determined
-    by the coverage and probability of vaccine take specified in the model.
+    This function assigns (effective) MCV1, (effective) MCV2, or NONE (no or
+    ineffective vaccination) status to individuals in the population based on
+    the model's parameters and random draws. The MCV1 and MCV2 statuses are
+    determined by the coverage and probability of vaccine take specified in the model.
 
     Parameters:
 
@@ -240,7 +224,8 @@ def set_mcv_status(model, istart, iend):
 def set_mcv_timers(model, istart, iend):
     """
     Set the MCV (Measles Containing Vaccine) timers for a subset of the population in the model.
-    This function assigns random timer values for MCV1 and MCV2 vaccinations to individuals in the population
+
+    This function assigns random timer values for MCV1 or MCV2 vaccinations to individuals in the population
     based on the specified start and end indices. The timer values are generated using the model's pseudo-random
     number generator (PRNG) and are constrained within the start and end parameters for MCV1 and MCV2.
 

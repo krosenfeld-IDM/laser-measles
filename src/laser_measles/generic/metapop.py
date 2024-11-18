@@ -2,16 +2,20 @@
 This module provides functionality to generate a scenario DataFrame by combining population data with geographical data.
 
 Functions:
+
     get_scenario(params, verbose: bool = False) -> pd.DataFrame:
+
         Reads population data from a CSV file and geographical data from a shapefile,
         processes and merges them, and returns a GeoDataFrame with additional latitude
         and longitude columns.
 
         Parameters:
+
             params: An object containing the file paths for the population and shape files.
             verbose (bool): If True, enables verbose output. Default is False.
 
         Returns:
+
             pd.DataFrame: A GeoDataFrame containing the merged population and geographical data.
 """
 

@@ -71,39 +71,26 @@ from laser_measles.utils import calc_distances
 class Model:
     """
     A class to represent a simulation model for measles spread.
-    Attributes
-    ----------
-    scenario : pd.DataFrame
-        A DataFrame containing the scenario data including population, latitude, and longitude.
-    params : PropertySet
-        A set of parameters for the model.
-    name : str
-        The name of the model, default is "measles".
-    prng : np.random.Generator
-        A pseudo-random number generator initialized with a seed.
-    patches : LaserFrame
-        A frame containing patches with population and network data.
-    population : LaserFrame
-        A frame containing the population data.
-    components : list
-        A list of components in the model.
-    instances : list
-        A list of instantiated components.
-    phases : list
-        A list of callable phases of the model.
-    metrics : list
-        A list to store timing metrics for each tick.
-    tinit : datetime
-        The initialization time of the model.
-    tstart : datetime
-        The start time of the model run.
-    tfinish : datetime
-        The finish time of the model run.
+
+    Args:
+
+        scenario (pd.DataFrame): A DataFrame containing the scenario data, including population, latitude, and longitude.
+        parameters (PropertySet): A set of parameters for the model, including seed, nticks, k, a, b, c, max_frac, cbr, verbose, and pyramid_file.
+        name (str, optional): The name of the model. Defaults to "measles".
+
+    Notes:
+
+        This class initializes the model with the given scenario and parameters. The scenario DataFrame must include the following columns:
+
+            - `name` (string): The name of the patch or location.
+            - `population` (integer): The population count for the patch.
+            - `latitude` (float degrees): The latitude of the patch (e.g., from geographic or population centroid).
+            - `longitude` (float degrees): The longitude of the patch (e.g., from geographic or population centroid).
     """
 
     def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "measles") -> None:
         """
-        Initialize the measles model with the given scenario and parameters.
+        Initialize the disease model with the given scenario and parameters.
 
         Args:
 
@@ -192,7 +179,9 @@ class Model:
     def components(self) -> list:
         """
         Retrieve the list of model components.
+
         Returns:
+
             list: A list containing the components.
         """
 
@@ -202,11 +191,16 @@ class Model:
     def components(self, components: list) -> None:
         """
         Sets up the components of the model and initializes instances and phases.
-        This method takes a list of components, initializes them, and categorizes them into instances and phases.
-        It also integrates components that have an `on_birth` method with the `Births` component.
+
+        This function takes a list of component types, creates an instance of each, and adds each callable component to the phase list.
+        It also registers any components with an `on_birth` function with the `Births` component.
+
         Args:
+
             components (list): A list of component classes to be initialized and integrated into the model.
+
         Returns:
+
             None
         """
 
@@ -219,8 +213,8 @@ class Model:
             if "__call__" in dir(instance):
                 self.phases.append(instance)
 
-        # TODO - integrate this above
         births = next(filter(lambda object: isinstance(object, Births), self.instances))
+        # TODO: raise an exception if there are components with an on_birth function but no Births component
         for instance in self.instances:
             if "on_birth" in dir(instance):
                 births.initializers.append(instance)
@@ -228,7 +222,9 @@ class Model:
 
     def __call__(self, model, tick: int) -> None:
         """
-        Updates the population of patches for the next tick.
+        Updates the population of patches for the next tick. Copies the previous
+        population data to the next tick to be updated, optionally, by a Birth and/or
+        Mortality component.
 
         Args:
 
@@ -246,15 +242,21 @@ class Model:
     def run(self) -> None:
         """
         Execute the model for a specified number of ticks, recording the time taken for each phase.
+
         This method initializes the start time, iterates over the number of ticks specified in the model parameters,
         and for each tick, it executes each phase of the model while recording the time taken for each phase.
+
         The metrics for each tick are stored in a list. After completing all ticks, it records the finish time and,
         if verbose mode is enabled, prints a summary of the timing metrics.
+
         Attributes:
+
             tstart (datetime): The start time of the model execution.
             tfinish (datetime): The finish time of the model execution.
             metrics (list): A list of timing metrics for each tick and phase.
+
         Returns:
+
             None
         """
 
@@ -289,7 +291,7 @@ class Model:
 
     def visualize(self, pdf: bool = True) -> None:
         """
-        Visualize the instances either by displaying plots or saving them to a PDF file.
+        Visualize each compoonent instances either by displaying plots or saving them to a PDF file.
 
         Parameters:
 
@@ -329,6 +331,7 @@ class Model:
         Yields:
 
             None: This function uses a generator to yield control back to the caller after each plot is created.
+
         The function generates three plots:
 
             1. A scatter plot of the scenario patches and populations.

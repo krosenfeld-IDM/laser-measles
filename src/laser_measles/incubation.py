@@ -35,41 +35,7 @@ from matplotlib.figure import Figure
 
 class Incubation:
     """
-    A class to manage the incubation period of a population in a model.
-
-    Attributes:
-    -----------
-
-    model : object
-
-        The model instance that contains the population and parameters.
-
-    verbose : bool, optional
-
-        A flag to enable verbose output (default is False).
-
-    Methods:
-    --------
-
-    __call__(model, tick) -> None
-
-        Updates the exposure timers for the population at each tick.
-
-    nb_update_exposure_timers(count, etimers, itimers, inf_mean, inf_std) -> None
-
-        A static method to update exposure timers using Numba for performance.
-
-    on_birth(model, _tick, istart, iend) -> None
-
-        Sets the exposure timer to 0 for newborns in the population.
-
-    nb_set_etimers(istart, iend, incubation, value) -> None
-
-        A static method to set exposure timers for a range of indices using Numba.
-
-    plot(fig: Figure = None)
-
-        Plots the distribution of the incubation period.
+    A component to update the incubation timers of a population in a model.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:
@@ -122,6 +88,7 @@ class Incubation:
     @staticmethod
     @nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:], nb.float32, nb.float32), parallel=True, cache=True)
     def nb_update_exposure_timers(count, etimers, itimers, inf_mean, inf_std) -> None:  # pragma: no cover
+        """Numba compiled function to check and update exposure timers for the population in parallel."""
         for i in nb.prange(count):
             timer = etimers[i]
             if timer > 0:
@@ -134,14 +101,13 @@ class Incubation:
 
     def on_birth(self, model, _tick, istart, iend) -> None:
         """
-        Handle the birth event in the model.
-        This method is called when a birth event occurs in the model. It sets the incubation timer
-        for the newborns to zero, indicating that they are not incubating.
+        This function is called when a birth event occurs in the model. It sets the incubation timer
+        for the newborns to zero, indicating that they are not incubating/exposed.
 
         Parameters:
 
             model (object): The model instance containing the population data.
-            _tick (int): The current tick or time step in the simulation.
+            tick (int): The current tick or time step in the simulation (unused in this function).
             istart (int): The start index of the newborns in the population array.
             iend (int): The end index of the newborns in the population array.
 
@@ -159,6 +125,7 @@ class Incubation:
     @staticmethod
     @nb.njit((nb.uint32, nb.uint32, nb.uint8[:], nb.uint8), parallel=True, cache=True)
     def nb_set_etimers(istart, iend, incubation, value) -> None:  # pragma: no cover
+        """Numba compiled function to set exposure timers for a range of agents in parallel."""
         for i in nb.prange(istart, iend):
             incubation[i] = value
 
@@ -166,7 +133,7 @@ class Incubation:
 
     def plot(self, fig: Figure = None):
         """
-        Plots the incubation period distribution of the population.
+        Plots the incubation timer values for currently incubating (exposed) agents in the population.
 
         Parameters:
 

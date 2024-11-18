@@ -32,33 +32,7 @@ from matplotlib.figure import Figure
 
 class Transmission:
     """
-    A class to model the transmission of measles in a population.
-
-    Attributes:
-    -----------
-
-    model : object
-
-        The model object containing the population and patches.
-
-    verbose : bool, optional
-
-        If True, enables verbose output (default is False).
-
-    Methods:
-    --------
-
-    __call__(model, tick):
-
-        Executes the transmission process for a given tick.
-
-    nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):
-
-        A static method that updates the transmission state using Numba for performance.
-
-    plot(fig=None):
-
-        Plots the cases and incidence for the two largest patches.
+    A component to model the transmission of disease in a population.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:
@@ -92,16 +66,22 @@ class Transmission:
     def __call__(self, model, tick) -> None:
         """
         Simulate the transmission of measles for a given model at a specific tick.
-        This method updates the state of the model by simulating the spread of measles
+
+        This method updates the state of the model by simulating the spread of disease
         through the population and patches. It calculates the contagion, handles the
         migration of infections between patches, and updates the forces of infection
         based on the effective transmission rate and seasonality factors. Finally, it
-        updates the transmission state of the population.
+        updates the infected state of the population.
+
         Parameters:
-        model (object): The model object containing the population, patches, and parameters.
-        tick (int): The current time step in the simulation.
+
+            model (object): The model object containing the population, patches, and parameters.
+            tick (int): The current time step in the simulation.
+
         Returns:
-        None
+
+            None
+
         """
 
         patches = model.patches
@@ -145,6 +125,7 @@ class Transmission:
         cache=True,
     )
     def nb_transmission_update(susceptibilities, nodeids, forces, etimers, count, exp_shape, exp_scale, incidence):  # pragma: no cover
+        """Numba compiled function to stochastically transmit infection to agents in parallel."""
         for i in nb.prange(count):
             susceptibility = susceptibilities[i]
             if susceptibility > 0:
@@ -162,16 +143,23 @@ class Transmission:
     def plot(self, fig: Figure = None):
         """
         Plots the cases and incidence for the two largest patches in the model.
+
         This function creates a figure with four subplots:
-        - Cases for the largest patch
-        - Incidence for the largest patch
-        - Cases for the second largest patch
-        - Incidence for the second largest patch
+
+            - Cases for the largest patch
+            - Incidence for the largest patch
+            - Cases for the second largest patch
+            - Incidence for the second largest patch
+
         If no figure is provided, a new figure is created with a size of 12x9 inches and a DPI of 128.
+
         Parameters:
-        fig (Figure, optional): A Matplotlib Figure object to plot on. If None, a new figure is created.
+
+            fig (Figure, optional): A Matplotlib Figure object to plot on. If None, a new figure is created.
+
         Yields:
-        None
+
+            None
         """
 
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig

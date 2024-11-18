@@ -18,18 +18,7 @@ from matplotlib.figure import Figure
 
 class MaternalAntibodies:
     """
-    A class to manage maternal antibodies in a population model.
-
-    Attributes:
-    -----------
-
-    model : object
-
-        The population model instance.
-
-    verbose : bool, optional
-
-        If True, enables verbose output (default is False).
+    A component to manage maternal antibodies in a population model.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:
@@ -61,8 +50,6 @@ class MaternalAntibodies:
     def __call__(self, model, tick) -> None:
         """
         Updates maternal antibody timers and susceptibility for the population.
-        This method is called to update the maternal antibody timers and susceptibility
-        of the population within the given model at each tick.
 
         Args:
 
@@ -80,6 +67,7 @@ class MaternalAntibodies:
     @staticmethod
     @nb.njit((nb.uint32, nb.uint8[:], nb.uint8[:]), parallel=True, cache=True)
     def nb_update_ma_timers(count, ma_timers, susceptibility):  # pragma: no cover
+        """Numba compiled function to check and update maternal antibody timers for the population in parallel."""
         for i in nb.prange(count):
             timer = ma_timers[i]
             if timer > 0:
@@ -92,12 +80,12 @@ class MaternalAntibodies:
 
     def on_birth(self, model, _tick, istart, iend) -> None:
         """
-        Handle the birth event in the model by updating the susceptibility and maternal antibody timer for newborns.
+        This function is called when births occur in the model. It updates the susceptibility and maternal antibody timers for newborns.
 
         Parameters:
 
             model (object): The model instance containing the population data.
-            _tick (int): The current tick or time step in the simulation.
+            tick (int): The current tick or time step in the simulation (unused in this function).
             istart (int): The starting index of the newborns in the population array.
             iend (int): The ending index of the newborns in the population array.
 

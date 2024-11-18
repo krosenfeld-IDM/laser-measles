@@ -32,44 +32,7 @@ from matplotlib.figure import Figure
 
 class Infection:
     """
-    A class to model and manage infection dynamics within a population.
-
-    Attributes:
-    -----------
-
-    model : object
-
-        The model object that contains the population and other parameters.
-
-    verbose : bool, optional
-
-        If True, enables verbose output (default is False).
-
-    Methods:
-    --------
-
-    __call__(model, tick) -> None:
-
-        Updates the infection status of the population at each tick.
-
-    on_birth(model, _tick, istart, iend) -> None:
-
-        Sets the infection timer for newborns to zero.
-
-    plot(fig: Figure = None):
-
-        Plots the infection data by age.
-
-    Static Methods:
-    ---------------
-
-    nb_infection_update(count, itimers) -> None:
-
-        Updates the infection timers for the population.
-
-    nb_set_itimers(istart, iend, itimers, value) -> None:
-
-        Sets the infection timers for a range of individuals in the population.
+    A component to update the infection timers of a population in a model.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:
@@ -100,7 +63,7 @@ class Infection:
 
     def __call__(self, model, tick) -> None:
         """
-        Updates the infection count and timer for the population in the model.
+        Updates the infection timers for the population in the model.
 
         Args:
 
@@ -118,6 +81,7 @@ class Infection:
     @staticmethod
     @nb.njit((nb.uint32, nb.uint8[:]), parallel=True, cache=True)
     def nb_infection_update(count, itimers):  # pragma: no cover
+        """Numba compiled function to check and update infection timers for the population in parallel."""
         for i in nb.prange(count):
             itimer = itimers[i]
             if itimer > 0:
@@ -128,14 +92,12 @@ class Infection:
 
     def on_birth(self, model, _tick, istart, iend) -> None:
         """
-        Handle the birth event in the model.
-
-        This method sets the infection timer for newborns to zero, indicating that they are not infectious.
+        This function sets the infection timer for newborns to zero, indicating that they are not infectious.
 
         Args:
 
             model: The simulation model containing the population data.
-            _tick: The current tick or time step in the simulation (unused in this method).
+            tick: The current tick or time step in the simulation (unused in this function).
             istart: The starting index of the newborns in the population array.
             iend: The ending index of the newborns in the population array.
 
@@ -152,6 +114,7 @@ class Infection:
     @staticmethod
     @nb.njit((nb.uint32, nb.uint32, nb.uint8[:], nb.uint8), parallel=True, cache=True)
     def nb_set_itimers(istart, iend, itimers, value) -> None:  # pragma: no cover
+        """Numba compiled function to set infection timers for a range of individuals in parallel."""
         for i in nb.prange(istart, iend):
             itimers[i] = value
 
@@ -170,7 +133,7 @@ class Infection:
 
         Yields:
 
-            None
+            None: This function uses a generator to yield control back to the caller.
         """
 
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig

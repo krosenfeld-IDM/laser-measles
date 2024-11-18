@@ -1,5 +1,5 @@
 """
-This module defines the Births class, which is responsible for simulating births in a population model.
+This module defines the Births component, which is responsible for simulating births in a population model.
 
 Classes:
 
@@ -9,7 +9,7 @@ Classes:
 
 Usage:
 
-    The Births class requires a model with a `population` attribute that has a `dob` attribute.
+    The Births component requires a model with a `population` attribute that has a `dob` attribute.
     It calculates the number of births based on the model's parameters and updates the population
     accordingly. It also provides methods to plot birth statistics.
 
@@ -37,19 +37,19 @@ from matplotlib.figure import Figure
 
 class Births:
     """
-    A class to handle the birth events in a population model.
+    A component to handle the birth events in a model.
 
     Attributes:
 
         model: The model instance containing population and parameters.
         verbose (bool): Flag to enable verbose output. Default is False.
-        _initializers (list): List of initializers to be called on birth events.
-        _metrics (list): List to store timing metrics for initializers.
+        initializers (list): List of initializers to be called on birth events.
+        metrics (DataFrame): DataFrame to holding timing metrics for initializers.
     """
 
     def __init__(self, model, verbose: bool = False):
         """
-        Initialize the Births class.
+        Initialize the Births component.
 
         Parameters:
 
@@ -78,10 +78,10 @@ class Births:
     @property
     def initializers(self):
         """
-        Returns the initializers for the measles births.
+        Returns the initializers to call on new agent births.
 
         This method retrieves the initializers that are used to set up the
-        initial state or configuration for the measles births.
+        initial state or configuration for agents at birth.
 
         Returns:
 
@@ -90,9 +90,23 @@ class Births:
 
         return self._initializers
 
+    @property
+    def metrics(self):
+        """
+        Returns the timing metrics for the births initializers.
+
+        This method retrieves the timing metrics for the births initializers.
+
+        Returns:
+
+            DataFrame: A Pandas DataFrame of timing metrics for the births initializers.
+        """
+
+        return pd.DataFrame(self._metrics, columns=["tick"] + [type(initializer).__name__ for initializer in self._initializers])
+
     def __call__(self, model, tick) -> None:
         """
-        Simulate the birth process for a given model at a specific tick (time step).
+        Adds new agents to each patch based on expected daily births calculated from CBR. Calls each of the registered initializers for the newborns.
 
         Args:
 
@@ -163,7 +177,6 @@ class Births:
         _fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         _fig.suptitle("Births in Top 5 Most Populous Patches")
 
-        # indices = [np.where(self._model.counties.names == county)[0][0] for county in counties]
         indices = self.model.patches.populations[0, :].argsort()[-5:]
         ax1 = plt.gca()
         ticks = list(range(0, self.model.params.nticks, 365))

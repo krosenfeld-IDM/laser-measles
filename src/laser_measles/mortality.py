@@ -37,37 +37,7 @@ from tqdm import tqdm
 
 class NonDiseaseDeaths:
     """
-    A class to model non-disease related deaths in a population.
-
-    Attributes:
-    -----------
-
-    model : object
-
-        The model object containing the population and parameters.
-
-    verbose : bool, optional
-
-        If True, enables verbose output (default is False).
-
-    Methods:
-    --------
-
-    __init__(self, model, verbose: bool = False):
-
-        Initializes the NonDiseaseDeaths class with the given model and verbosity.
-
-    on_birth(self, model, tick, istart, iend):
-
-        Handles the birth of new agents, setting their alive status and predicted date of death.
-
-    __call__(self, model, tick):
-
-        Executes the non-disease death process for the current tick, updating the population and death counts.
-
-    plot(self, fig: Figure = None):
-
-        Plots the cumulative non-disease deaths for the year 0 population.
+    A component to model non-disease related deaths in a population.
     """
 
     def __init__(self, model, verbose: bool = False):
@@ -76,39 +46,19 @@ class NonDiseaseDeaths:
 
         Parameters:
 
-        model : object
-
-            The model object that contains the population and parameters.
-
-        verbose : bool, optional
-
-            If True, enables verbose output (default is False).
-
-        Attributes:
-
             model : object
 
                 The model object that contains the population and parameters.
 
-            cumulative_deaths : numpy.ndarray
+            verbose : bool, optional
 
-                Array of cumulative deaths loaded from the mortality file.
+                If True, enables verbose output (default is False).
 
-            dods : numpy.ndarray
+        Notes:
 
-                Array of days of death for the population.
-
-            dobs : numpy.ndarray
-
-                Array of days of birth for the population.
-
-            model.estimator : KaplanMeierEstimator
-
-                Estimator for predicting age at death.
-
-            model.nddq : SortedQueue
-
-                Queue for managing non-disease deaths.
+            - Adds scalar properties "alive" and "dod" to the model's population.
+            - Initializes the Kaplan-Meier estimator from `model.params.mortality_file` with the cumulative deaths data.
+            - Adds vector property "deaths" to the model's patches.
         """
 
         self.model = model
@@ -141,15 +91,20 @@ class NonDiseaseDeaths:
     def on_birth(self, model, tick, istart, iend):
         """
         Handles the birth of new agents in the model.
+
         This function updates the population's alive status and predicted date of death (dod) for newly born agents.
-        It also pushes agents with a date of death within the simulation's maximum ticks to the non-death-death queue (nddq).
+        It also pushes agents with a date of death within the simulation's maximum ticks to the non-disease death queue (nddq).
+
         Parameters:
-        model (object): The simulation model containing population and parameters.
-        tick (int): The current tick or time step in the simulation.
-        istart (int): The starting index of the newly born agents in the population array.
-        iend (int): The ending index of the newly born agents in the population array.
+
+            model (object): The simulation model containing population and parameters.
+            tick (int): The current tick or time step in the simulation.
+            istart (int): The starting index of the newly born agents in the population array.
+            iend (int): The ending index of the newly born agents in the population array.
+
         Returns:
-        None
+
+            None
         """
 
         # newborns are alive and have a predicted date of death
@@ -169,20 +124,26 @@ class NonDiseaseDeaths:
     def __call__(self, model, tick):
         """
         Update the model state for the given tick by processing the non-disease deaths queue.
+
         This method updates the population and deaths counts for each node in the model
         based on the non-disease deaths queue. It marks agents as dead and updates the
         corresponding node's population and death counts.
+
         Parameters:
-        model (object): The model object containing population and patches data.
-        tick (int): The current time step or tick in the simulation.
+
+            model (object): The model object containing population and patches data.
+            tick (int): The current time step or tick in the simulation.
+
         Returns:
-        None
+
+            None
         """
 
         nodeids = model.population.nodeid[0 : model.population.count]
         node_population = model.patches.populations[tick, :]
         node_deaths = model.patches.deaths[tick, :]
         alive = model.population.alive[0 : model.population.count]
+        # TODO - support registration of "on_death" callbacks for agents
         # susceptibility = model.population.susceptibility[0 : model.population.count]
         # ma_timers = model.population.ma_timers[0 : model.population.count]
         # ri_timers = model.population.ri_timers[0 : model.population.count]

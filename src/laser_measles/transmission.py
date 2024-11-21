@@ -103,7 +103,9 @@ class Transmission:
         )
         np.multiply(contagion, beta_effective, out=forces)
         np.divide(forces, model.patches.populations[tick, :], out=forces)  # per agent force of infection
-        np.expm1(-forces, out=forces)
+        # rate to probability conversion 1 - e^(-rate)
+        np.negative(forces, out=forces)
+        np.expm1(forces, out=forces)
         np.negative(forces, out=forces)
 
         Transmission.nb_transmission_update(

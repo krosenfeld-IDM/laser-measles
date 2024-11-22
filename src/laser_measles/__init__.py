@@ -12,7 +12,6 @@ from .susceptibility import Susceptibility
 from .transmission import Transmission
 
 __all__ = [
-    "compute",
     "Births",
     "Incubation",
     "Infection",
@@ -22,4 +21,5 @@ __all__ = [
     "RoutineImmunization",
     "Susceptibility",
     "Transmission",
+    "compute",
 ]

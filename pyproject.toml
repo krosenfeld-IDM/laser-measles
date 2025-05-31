@@ -159,3 +159,8 @@ replace = 'version: "{new_version}"'
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.8.2",
+]

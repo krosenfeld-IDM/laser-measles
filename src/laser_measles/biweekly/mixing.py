@@ -1,17 +1,18 @@
-
 import numpy as np
+import polars as pl
 
 # Constants for gravity diffusion model
 MAX_DISTANCE = 100000000  # km, used to prevent self-migration
 MIN_DISTANCE = 10  # km, minimum distance to prevent excessive neighbor migration
 
+
 def pairwise_haversine(lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
     """Calculate pairwise distances for all (lon, lat) points using the Haversine formula.
-    
+
     Args:
         lon: Array of longitude values in degrees
         lat: Array of latitude values in degrees
-        
+
     Returns:
         Compressed matrix of pairwise distances in kilometers, where only the upper triangle
         (excluding diagonal) is stored. The full matrix can be reconstructed using:
@@ -38,19 +39,15 @@ def pairwise_haversine(lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
     return 2 * earth_radius_km * np.arcsin(np.sqrt(d))
 
 
-def init_gravity_diffusion(
-    df: np.ndarray | tuple[np.ndarray, np.ndarray],
-    scale: float,
-    dist_exp: float
-) -> np.ndarray:
+def init_gravity_diffusion(df: pl.DataFrame | tuple[np.ndarray, np.ndarray], scale: float, dist_exp: float) -> np.ndarray:
     """Initialize a gravity diffusion matrix for population mixing.
-    
+
     Args:
-        df: Either a DataFrame with 'population', 'latitude', and 'longitude' columns,
+        df: Either a DataFrame with 'population', 'lat', and 'lon' columns,
             or a tuple of (lon, lat) arrays
         scale: Scaling factor for the diffusion matrix
         dist_exp: Distance exponent for the gravity model
-        
+
     Returns:
         Normalized diffusion matrix where each row sums to 1
     """
@@ -58,8 +55,8 @@ def init_gravity_diffusion(
         return np.ones((1, 1))
 
     n = len(df)
-    compressed_distances = pairwise_haversine(df['lon'].to_numpy(), df['lat'].to_numpy())
-    pops = df['population'].to_numpy()
+    compressed_distances = pairwise_haversine(df["lon"].to_numpy(), df["lat"].to_numpy())
+    pops = df["population"].to_numpy()
 
     # Get the indices for the upper triangle
     i, j = np.triu_indices(n, k=1)

@@ -18,18 +18,23 @@ def summarize_scenario(df: pl.DataFrame) -> None:
     print(f"Total population: {total_population}")
     print(f"Number of patches: {len(df)} ({num_with_pop} with pop > 0)")
 
+# Change directory
 os.chdir(Path.resolve(Path(__file__)).parent.as_posix())
 this_dir = Path(__file__).parent
+
+# Set rasters
 population_raster_path = "gpw_v4_population_count_adjusted_to_2015_unwpp_country_totals_rev11_2010_30_sec_crop.tif"
 mcv1_raster_path = "mcv1_cov_mean_raked_2000_2023_11_crop.tif"
+
+# Prep shapefile
 g = gadm.GADMShapefile("NGA")
 # g.download()
 # g.add_dotnames()
 # g.shape_subdivide(admin_level=2, patch_size_km=50)
-print(g.list_cache_keys())
 with cache.load_cache() as c:
     shapefile_path = c[g.get_cache_key() + ":2:50km"]
 
+# Setup demographics generator
 config = raster_patch.RasterPatchConfig(
     id='nigeria_50km',
     region="NGA",
@@ -39,6 +44,8 @@ config = raster_patch.RasterPatchConfig(
 )
 generator = raster_patch.RasterPatchGenerator(config)
 generator.generate_demographics()
+
+# Grab the data
 df_pop = generator.population # TODO: save everythign in a dataframe
 df_mcv1 = generator.mcv1
 

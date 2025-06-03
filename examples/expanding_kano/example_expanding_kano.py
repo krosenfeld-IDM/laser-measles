@@ -73,22 +73,24 @@ with alive_progress.alive_bar() as bar:
     bar.text("Plotting Kano")
     # Plot just Kano
     states = ["kano"]
-    filtered_df = df.lazy().filter(pl.col("state").is_in(states)).collect()
-    fig = shapefiles.plot_dataframe(filtered_df)
+    filtered_df_kano = df.lazy().filter(pl.col("state").is_in(states)).collect()
+    filtered_df_kano = filtered_df_kano.with_columns(pl.lit("kano").alias("scenario_id"))
+    fig = shapefiles.plot_dataframe(filtered_df_kano)
     fig.savefig("kano.png", dpi=300, bbox_inches="tight", transparent=True)
-    summarize_scenario(filtered_df)
+    summarize_scenario(filtered_df_kano)
     # Plot Kano plus surrounding states
     bar.text("Plotting Kano region")
     states = [
         k.lower()
         for k in ["Kano", "Katsina", "Jigawa", "Kaduna", "Bauchi", "Plateau"]
     ]
-    filtered_df = df.lazy().filter(pl.col("state").is_in(states)).collect()
+    filtered_df_kano_region = df.lazy().filter(pl.col("state").is_in(states)).collect()
+    filtered_df_kano_region = filtered_df_kano_region.with_columns(pl.lit("kano_region").alias("scenario_id"))
     filtered_df_states = df_states.lazy().filter(pl.col("state").is_in(states)).collect()
-    fig = shapefiles.plot_dataframe(filtered_df, plot_kwargs={'linewidth': 0.25})
+    fig = shapefiles.plot_dataframe(filtered_df_kano_region, plot_kwargs={'linewidth': 0.25})
     shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={'linewidth': 1})
     fig.savefig("kano_region.png", dpi=300, bbox_inches="tight", transparent=True)
-    summarize_scenario(filtered_df)
+    summarize_scenario(filtered_df_kano_region)
 
     # Plot Northern nigeria states
     bar.text("Plotting Northern Nigeria")
@@ -118,12 +120,14 @@ with alive_progress.alive_bar() as bar:
             "Federal Capital Territory",
         ]
     ]
-    filtered_df = df.lazy().filter(pl.col("state").is_in(states)).collect()
+    filtered_df_northern = df.lazy().filter(pl.col("state").is_in(states)).collect()
+    filtered_df_northern = filtered_df_northern.with_columns(pl.lit("northern_nigeria").alias("scenario_id"))
     filtered_df_states = df_states.lazy().filter(pl.col("state").is_in(states)).collect()
-    fig = shapefiles.plot_dataframe(filtered_df, plot_kwargs={'linewidth': 0.1})
+    fig = shapefiles.plot_dataframe(filtered_df_northern, plot_kwargs={'linewidth': 0.1})
     shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={'linewidth': 1, 'fill': True, 'facecolor': 'none'})
     fig.savefig("nigeria_region.png", dpi=300, bbox_inches="tight", transparent=True)
-    summarize_scenario(filtered_df)
+    summarize_scenario(filtered_df_northern)
 
-    # Save the largest scenario to disk
-    filtered_df.drop("shape").write_parquet("nigeria_region.parquet")
+    # Combine all scenarios and save to disk
+    combined_df = pl.concat([filtered_df_kano, filtered_df_kano_region, filtered_df_northern])
+    combined_df.drop("shape").write_parquet("scenarios.parquet")

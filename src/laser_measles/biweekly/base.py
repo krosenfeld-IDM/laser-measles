@@ -11,6 +11,9 @@ class BaseComponent:
         self.verbose = verbose
         self.initialized = True
 
+    def __call__(self, model, tick: int) -> None:
+        ...
+
     def plot(self, fig: Figure = None):
         """
         Placeholder for plotting method.

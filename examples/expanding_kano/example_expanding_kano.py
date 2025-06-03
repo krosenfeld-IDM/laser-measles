@@ -21,6 +21,7 @@ def summarize_scenario(df: pl.DataFrame) -> None:
     print(f"Number of patches: {len(df)} ({num_with_pop} with pop > 0)")
     return total_population
 
+
 # Change directory
 os.chdir(Path.resolve(Path(__file__)).parent.as_posix())
 this_dir = Path(__file__).parent
@@ -39,7 +40,7 @@ with cache.load_cache() as c:
 
 # Setup demographics generator
 config = raster_patch.RasterPatchConfig(
-    id='nigeria_50km',
+    id="nigeria_50km",
     region="NGA",
     shapefile_path=shapefile_path,
     population_raster_path=this_dir / population_raster_path,
@@ -49,28 +50,18 @@ generator = raster_patch.RasterPatchGenerator(config)
 generator.generate_demographics()
 
 # Grab the data
-df_pop = generator.population # TODO: save everythign in a dataframe
+df_pop = generator.population  # TODO: save everythign in a dataframe
 df_mcv1 = generator.mcv1
 
 # Get dataframe with the patches
 df = shapefiles.get_dataframe(generator.shapefile).join(df_pop, on="dotname", how="left")
 df = df.join(df_mcv1.drop(["lat", "lon"]), on="dotname", how="left")
-assert(len(df) == len(df_pop))
+assert len(df) == len(df_pop)
 df_states = shapefiles.get_dataframe(g.get_shapefile_path(admin_level=1))
 
 # Add "state" column
-df = df.with_columns(
-    pl.col("dotname")
-    .str.split_exact(":", 2)
-    .struct.field("field_1")
-    .alias("state")
-)
-df_states = df_states.with_columns(
-    pl.col("dotname")
-    .str.split_exact(":", 1)
-    .struct.field("field_1")
-    .alias("state")
-)
+df = df.with_columns(pl.col("dotname").str.split_exact(":", 2).struct.field("field_1").alias("state"))
+df_states = df_states.with_columns(pl.col("dotname").str.split_exact(":", 1).struct.field("field_1").alias("state"))
 
 with alive_progress.alive_bar() as bar:
     bar.text("Plotting Kano")
@@ -84,15 +75,12 @@ with alive_progress.alive_bar() as bar:
 
     # Plot Kano plus surrounding states
     bar.text("Plotting Kano region")
-    states = [
-        k.lower()
-        for k in ["Kano", "Katsina", "Jigawa", "Kaduna", "Bauchi", "Plateau"]
-    ]
+    states = [k.lower() for k in ["Kano", "Katsina", "Jigawa", "Kaduna", "Bauchi", "Plateau"]]
     filtered_df_kano_region = df.lazy().filter(pl.col("state").is_in(states)).collect()
     filtered_df_kano_region = filtered_df_kano_region.with_columns(pl.lit("kano_region").alias("scenario_id"))
     filtered_df_states = df_states.lazy().filter(pl.col("state").is_in(states)).collect()
-    fig = shapefiles.plot_dataframe(filtered_df_kano_region, plot_kwargs={'linewidth': 0.25})
-    shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={'linewidth': 1})
+    fig = shapefiles.plot_dataframe(filtered_df_kano_region, plot_kwargs={"linewidth": 0.25})
+    shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={"linewidth": 1})
     fig.savefig("kano_region.png", dpi=300, bbox_inches="tight", transparent=True)
     kano_region_pop = summarize_scenario(filtered_df_kano_region)
 
@@ -126,67 +114,73 @@ with alive_progress.alive_bar() as bar:
     filtered_df_northern = df.lazy().filter(pl.col("state").is_in(states)).collect()
     filtered_df_northern = filtered_df_northern.with_columns(pl.lit("northern_nigeria").alias("scenario_id"))
     filtered_df_states = df_states.lazy().filter(pl.col("state").is_in(states)).collect()
-    fig = shapefiles.plot_dataframe(filtered_df_northern, plot_kwargs={'linewidth': 0.1})
-    shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={'linewidth': 1, 'fill': True, 'facecolor': 'none'})
+    fig = shapefiles.plot_dataframe(filtered_df_northern, plot_kwargs={"linewidth": 0.1})
+    shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={"linewidth": 1, "fill": True, "facecolor": "none"})
     fig.savefig("nigeria_region.png", dpi=300, bbox_inches="tight", transparent=True)
     northern_pop = summarize_scenario(filtered_df_northern)
 
     ###############################
 
+    figsize = (4, 5)
+
+    def format_axes(ax):
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.yaxis.set_ticks_position("left")
+
     # Create population comparison bar chart
-    plt.figure(figsize=(6, 5))
-    scenarios = ['Kano', 'Kano Region', 'Northern Nigeria']
+    plt.figure(figsize=figsize)
+    scenarios = ["Kano", "Kano Region", "Northern Nigeria"]
     populations = [kano_pop, kano_region_pop, northern_pop]
-    
+
     # Create bar plot with seaborn for better aesthetics
     sns.set_style("whitegrid")
     ax = sns.barplot(x=scenarios, y=populations)
-    
+
     # Customize the plot
     # plt.title('Population Comparison Across Scenarios', pad=20)
-    plt.ylabel('Population (millions)')
-    
+    plt.ylabel("Population (millions)", fontsize=12)
+
     # Format y-axis to show millions
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
-    
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x / 1e6:.0f}"))
+
     # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45)
-    
+    plt.xticks(rotation=45, fontsize=12)
+
     # Remove top and right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    
+    format_axes(ax)
+
     plt.tight_layout()
-    plt.savefig('population_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig("population_comparison.png", dpi=300, bbox_inches="tight")
     plt.close()
 
     # Create second figure for non-zero population entries
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=figsize)
     non_zero_counts = [
         (filtered_df_kano["population"] > 0).sum(),
         (filtered_df_kano_region["population"] > 0).sum(),
-        (filtered_df_northern["population"] > 0).sum()
+        (filtered_df_northern["population"] > 0).sum(),
     ]
-    
+
     # Create bar plot with seaborn using lavender color
     sns.set_style("whitegrid")
-    ax = sns.barplot(x=scenarios, y=non_zero_counts, color='#B19CD9')  # Darker lavender color
-    
+    ax = sns.barplot(x=scenarios, y=non_zero_counts, color="#B19CD9")  # Darker lavender color
+
     # Customize the plot
-    plt.ylabel('Number of Patches (thousands)')
-    
+    plt.ylabel("Number of Patches (thousands)", fontsize=12)
+
     # Format y-axis to show thousands
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}'))
-    
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x / 1000:.0f}"))
+
     # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45)
-    
+    plt.xticks(rotation=45, fontsize=12)
+
     # Remove top and right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    
+    format_axes(ax)
+
     plt.tight_layout()
-    plt.savefig('patch_count_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig("patch_count_comparison.png", dpi=300, bbox_inches="tight")
     plt.close()
 
     # Combine all scenarios and save to disk

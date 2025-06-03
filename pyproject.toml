@@ -171,3 +171,6 @@ dev = [
     "commitizen>=4.8.2",
     "pytest-order>=1.1.1",
 ]
+examples = [
+    "seaborn>=0.13.2",
+]

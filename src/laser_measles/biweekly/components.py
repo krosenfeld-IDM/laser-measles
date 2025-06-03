@@ -86,6 +86,17 @@ class CrudeRateBirths(BaseComponent):
             # If no MCV coverage data, all births go to susceptible as before
             states[0] += births
 
+class FadeOutTracker(BaseComponent):
+    """
+    Component for tracking the number of nodes with fade-outs.
+    """
+    def __init__(self, model, verbose: bool = False) -> None:
+        super().__init__(model, verbose)
+        self.fade_out_tracker = np.zeros(model.params.nticks)
+
+    def __call__(self, model, tick: int) -> None:
+        self.fade_out_tracker[tick] = np.sum(model.nodes.states[1,:] == 0)
+
 class KanoStep(BaseComponent):
     """
     Component for simulating the spread of infection in the Kano model.

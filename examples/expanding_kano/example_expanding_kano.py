@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 
 import alive_progress
+import matplotlib.pyplot as plt
 import polars as pl
+import seaborn as sns
 
 from laser_measles.demographics import cache
 from laser_measles.demographics import gadm
@@ -17,6 +19,7 @@ def summarize_scenario(df: pl.DataFrame) -> None:
     num_with_pop = (df["population"] > 0).sum()
     print(f"Total population: {total_population}")
     print(f"Number of patches: {len(df)} ({num_with_pop} with pop > 0)")
+    return total_population
 
 # Change directory
 os.chdir(Path.resolve(Path(__file__)).parent.as_posix())
@@ -77,7 +80,8 @@ with alive_progress.alive_bar() as bar:
     filtered_df_kano = filtered_df_kano.with_columns(pl.lit("kano").alias("scenario_id"))
     fig = shapefiles.plot_dataframe(filtered_df_kano)
     fig.savefig("kano.png", dpi=300, bbox_inches="tight", transparent=True)
-    summarize_scenario(filtered_df_kano)
+    kano_pop = summarize_scenario(filtered_df_kano)
+
     # Plot Kano plus surrounding states
     bar.text("Plotting Kano region")
     states = [
@@ -90,11 +94,10 @@ with alive_progress.alive_bar() as bar:
     fig = shapefiles.plot_dataframe(filtered_df_kano_region, plot_kwargs={'linewidth': 0.25})
     shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={'linewidth': 1})
     fig.savefig("kano_region.png", dpi=300, bbox_inches="tight", transparent=True)
-    summarize_scenario(filtered_df_kano_region)
+    kano_region_pop = summarize_scenario(filtered_df_kano_region)
 
     # Plot Northern nigeria states
     bar.text("Plotting Northern Nigeria")
-    # Borno, Bauchi, Gombe, Taraba, Yobe, Adamawa, Jigawa, Kano, Kaduna, Katsina, Kebbi, Sokoto, Zamfara, Niger, Plateau, Nasarawa, Benue, Kogi, and Kwara
     states = [
         k.lower()
         for k in [
@@ -126,7 +129,65 @@ with alive_progress.alive_bar() as bar:
     fig = shapefiles.plot_dataframe(filtered_df_northern, plot_kwargs={'linewidth': 0.1})
     shapefiles.plot_dataframe(filtered_df_states, ax=fig.axes[0], plot_kwargs={'linewidth': 1, 'fill': True, 'facecolor': 'none'})
     fig.savefig("nigeria_region.png", dpi=300, bbox_inches="tight", transparent=True)
-    summarize_scenario(filtered_df_northern)
+    northern_pop = summarize_scenario(filtered_df_northern)
+
+    ###############################
+
+    # Create population comparison bar chart
+    plt.figure(figsize=(6, 5))
+    scenarios = ['Kano', 'Kano Region', 'Northern Nigeria']
+    populations = [kano_pop, kano_region_pop, northern_pop]
+    
+    # Create bar plot with seaborn for better aesthetics
+    sns.set_style("whitegrid")
+    ax = sns.barplot(x=scenarios, y=populations)
+    
+    # Customize the plot
+    # plt.title('Population Comparison Across Scenarios', pad=20)
+    plt.ylabel('Population (millions)')
+    
+    # Format y-axis to show millions
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45)
+    
+    # Remove top and right spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig('population_comparison.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # Create second figure for non-zero population entries
+    plt.figure(figsize=(6, 5))
+    non_zero_counts = [
+        (filtered_df_kano["population"] > 0).sum(),
+        (filtered_df_kano_region["population"] > 0).sum(),
+        (filtered_df_northern["population"] > 0).sum()
+    ]
+    
+    # Create bar plot with seaborn using lavender color
+    sns.set_style("whitegrid")
+    ax = sns.barplot(x=scenarios, y=non_zero_counts, color='#B19CD9')  # Darker lavender color
+    
+    # Customize the plot
+    plt.ylabel('Number of Patches (thousands)')
+    
+    # Format y-axis to show thousands
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}'))
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45)
+    
+    # Remove top and right spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig('patch_count_comparison.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
     # Combine all scenarios and save to disk
     combined_df = pl.concat([filtered_df_kano, filtered_df_kano_region, filtered_df_northern])

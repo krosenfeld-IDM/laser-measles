@@ -1,0 +1,1 @@
+Compartmental SIR model using bimonthly steps

@@ -157,21 +157,22 @@ with alive_progress.alive_bar() as bar:
 
     # Create second figure for non-zero population entries
     plt.figure(figsize=figsize)
-    non_zero_counts = [
-        (filtered_df_kano["population"] > 0).sum(),
-        (filtered_df_kano_region["population"] > 0).sum(),
-        (filtered_df_northern["population"] > 0).sum(),
+    # Calculate number of connections (n choose 2) for each scenario
+    connection_counts = [
+        (filtered_df_kano["population"] > 0).sum() * ((filtered_df_kano["population"] > 0).sum() - 1) // 2,
+        (filtered_df_kano_region["population"] > 0).sum() * ((filtered_df_kano_region["population"] > 0).sum() - 1) // 2,
+        (filtered_df_northern["population"] > 0).sum() * ((filtered_df_northern["population"] > 0).sum() - 1) // 2,
     ]
 
     # Create bar plot with seaborn using lavender color
     sns.set_style("whitegrid")
-    ax = sns.barplot(x=scenarios, y=non_zero_counts, color="#B19CD9")  # Darker lavender color
+    ax = sns.barplot(x=scenarios, y=connection_counts, color="#B19CD9")  # Darker lavender color
 
     # Customize the plot
-    plt.ylabel("Number of Patches (thousands)", fontsize=12)
+    plt.ylabel("Number of Connections", fontsize=12)
 
-    # Format y-axis to show thousands
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{x / 1000:.0f}"))
+    # Set y-axis to log scale
+    ax.set_yscale('log')
 
     # Rotate x-axis labels for better readability
     plt.xticks(rotation=45, fontsize=12)
@@ -180,7 +181,7 @@ with alive_progress.alive_bar() as bar:
     format_axes(ax)
 
     plt.tight_layout()
-    plt.savefig("patch_count_comparison.png", dpi=300, bbox_inches="tight")
+    plt.savefig("connection_count_comparison.png", dpi=300, bbox_inches="tight")
     plt.close()
 
     # Combine all scenarios and save to disk

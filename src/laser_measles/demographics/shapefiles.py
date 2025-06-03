@@ -112,9 +112,11 @@ def get_dataframe(shapefile_path: str | Path) -> pl.DataFrame:
 
         return df
 
-def plot_dataframe(df: pl.DataFrame, ax: plt.Axes | None = None, plot_kwargs: dict = {}) -> plt.Figure:
+def plot_dataframe(df: pl.DataFrame, ax: plt.Axes | None = None, plot_kwargs: dict | None = None) -> plt.Figure:
     if ax is None:
         fig, ax = plt.subplots()
+    if plot_kwargs is None:
+        plot_kwargs = {}
     default_plot_kwargs = {
         "closed": True,
         "fill": False,

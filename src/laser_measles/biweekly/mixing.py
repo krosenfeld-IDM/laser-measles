@@ -1,5 +1,5 @@
+
 import numpy as np
-from typing import Union, Tuple
 
 # Constants for gravity diffusion model
 MAX_DISTANCE = 100000000  # km, used to prevent self-migration
@@ -13,23 +13,34 @@ def pairwise_haversine(lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
         lat: Array of latitude values in degrees
         
     Returns:
-        Matrix of pairwise distances in kilometers
+        Compressed matrix of pairwise distances in kilometers, where only the upper triangle
+        (excluding diagonal) is stored. The full matrix can be reconstructed using:
+        full_matrix = np.zeros((n, n))
+        full_matrix[np.triu_indices(n, k=1)] = compressed_matrix
+        full_matrix = full_matrix + full_matrix.T
     """
     earth_radius_km = 6367
+    n = len(lon)
 
+    # Get upper triangle indices (excluding diagonal)
+    i, j = np.triu_indices(n, k=1)
 
-    # matrices of pairwise differences for latitudes & longitudes
-    dlat = lat[:, None] - lat
-    dlon = lon[:, None] - lon
+    # Calculate differences only for the upper triangle
+    dlat = lat[j] - lat[i]
+    dlon = lon[j] - lon[i]
 
-    # vectorized haversine distance calculation
-    d = np.sin(dlat / 2) ** 2 + np.cos(lat[:, None]) * np.cos(lat) * np.sin(dlon / 2) ** 2
+    # Calculate cosines only for the needed pairs
+    cos_lat_i = np.cos(lat[i])
+    cos_lat_j = np.cos(lat[j])
+
+    # vectorized haversine distance calculation for upper triangle only
+    d = np.sin(dlat / 2) ** 2 + cos_lat_i * cos_lat_j * np.sin(dlon / 2) ** 2
     return 2 * earth_radius_km * np.arcsin(np.sqrt(d))
 
 
 def init_gravity_diffusion(
-    df: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]], 
-    scale: float, 
+    df: np.ndarray | tuple[np.ndarray, np.ndarray],
+    scale: float,
     dist_exp: float
 ) -> np.ndarray:
     """Initialize a gravity diffusion matrix for population mixing.
@@ -46,21 +57,33 @@ def init_gravity_diffusion(
     if len(df) == 1:
         return np.ones((1, 1))
 
-    distances = pairwise_haversine(df['lon'].to_numpy(), df['lat'].to_numpy())
+    n = len(df)
+    compressed_distances = pairwise_haversine(df['lon'].to_numpy(), df['lat'].to_numpy())
+    pops = df['population'].to_numpy()
 
-    pops = np.array(df['population'])
-    pops = pops[:, np.newaxis].T
-    pops = np.repeat(pops, pops.size, axis=0).astype(np.float64)
+    # Get the indices for the upper triangle
+    i, j = np.triu_indices(n, k=1)
 
-    np.fill_diagonal(distances, MAX_DISTANCE)  # Prevent divide by zero errors and self migration
-    diffusion_matrix = pops / (distances + MIN_DISTANCE) ** dist_exp  # minimum distance prevents excessive neighbor migration
-    np.fill_diagonal(diffusion_matrix, 0)
+    # Calculate population products only for the upper triangle
+    pop_products = pops[i] * pops[j]
 
-    # normalize average total outbound migration to 1
-    diffusion_matrix = diffusion_matrix / np.mean(np.sum(diffusion_matrix, axis=1))
+    # Calculate diffusion values for upper triangle
+    diffusion_values = pop_products / (compressed_distances + MIN_DISTANCE) ** dist_exp
 
-    diffusion_matrix *= scale
-    diagonal = 1 - np.sum(diffusion_matrix, axis=1)  # normalized outbound migration by source
+    # Create the full matrix
+    diffusion_matrix = np.zeros((n, n))
+    diffusion_matrix[i, j] = diffusion_values
+    diffusion_matrix[j, i] = diffusion_values  # Mirror the values
+
+    # Calculate row sums for normalization
+    row_sums = np.sum(diffusion_matrix, axis=1)
+    mean_sum = np.mean(row_sums)
+
+    # Normalize and scale
+    diffusion_matrix = diffusion_matrix / mean_sum * scale
+
+    # Calculate and set diagonal values
+    diagonal = 1 - np.sum(diffusion_matrix, axis=1)
     np.fill_diagonal(diffusion_matrix, diagonal)
 
     return diffusion_matrix

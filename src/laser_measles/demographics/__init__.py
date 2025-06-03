@@ -1,3 +1,3 @@
 from . import base
 from . import gadm
-from . import patch
+from . import raster_patch

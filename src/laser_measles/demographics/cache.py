@@ -44,3 +44,8 @@ def clear_cache_dir(dir: str) -> None:
     resolve_dir = Path(get_cache_dir()) / dir
     if resolve_dir.exists():
         shutil.rmtree(resolve_dir)
+
+def get_all_cache_keys() -> list[str]:
+    """Get all the cache keys for the application."""
+    with load_cache() as c:
+        return list(c.iterkeys())

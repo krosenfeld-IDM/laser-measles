@@ -129,7 +129,7 @@ def plot_dataframe(df: pl.DataFrame, ax: plt.Axes | None = None, plot_kwargs: di
     def get_data(data: list[tuple[float, float]], index: int) -> list[float]:
         return [x[index] for x in data]
  
-    for dotname, shape in zip(df["dotname"], df["shape"]):
+    for shape in df["shape"]:
         polygon = Polygon(shape.points, **default_plot_kwargs)
         ax.add_patch(polygon)
         xlim[0] = min(xlim[0], min(get_data(shape.points, 0)))
@@ -139,7 +139,6 @@ def plot_dataframe(df: pl.DataFrame, ax: plt.Axes | None = None, plot_kwargs: di
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_aspect(1 / np.cos(np.mean(ylim) * np.pi / 180))
-
     ax.set_axis_off()
     return ax.figure
 

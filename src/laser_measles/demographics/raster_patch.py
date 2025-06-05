@@ -12,7 +12,6 @@ from rastertoolkit import raster_clip_weighted
 
 from laser_measles.demographics import cache
 from laser_measles.demographics import shapefiles
-from laser_measles.demographics.base import DemographicsGenerator
 from laser_measles.demographics.gadm import GADMShapefile
 
 
@@ -32,7 +31,7 @@ class RasterPatchConfig(BaseModel):
         return v
 
 
-class RasterPatchGenerator(DemographicsGenerator):
+class RasterPatchGenerator:
     def __init__(self, config: RasterPatchConfig, verbose: bool = True):
         self.config = config
         self.verbose = verbose
@@ -77,12 +76,12 @@ class RasterPatchGenerator(DemographicsGenerator):
 
             popdict = c[self.get_cache_key("population")]
 
-            new_dict = {"dotname": [], "lat": [], "lon": [], "population": []}
+            new_dict = {"dotname": [], "lat": [], "lon": [], "pop": []}
             for k, v in popdict.items():
                 new_dict["dotname"].append(k)
                 new_dict["lat"].append(v["lat"])
                 new_dict["lon"].append(v["lon"])
-                new_dict["population"].append(v["pop"])
+                new_dict["pop"].append(v["pop"])
 
             return pl.DataFrame(new_dict)
 

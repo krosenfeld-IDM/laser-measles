@@ -6,28 +6,29 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
 
-def check_dotname(path: str | Path):
+def check_field(path: str | Path, field_name: str) -> bool:
     path = Path(path) if isinstance(path, str) else path
     with Reader(path) as sf:
         fields = [field[0] for field in sf.fields[1:]]
-        if "DOTNAME" in fields:
+        if field_name in fields:
             return True
         return False
 
 
 def add_dotname(
     path: str | Path,
-    dot_name_fields: list[str] = ["COUNTRY", "NAME_1", "NAME_2"],
+    dot_name_fields: list[str],
     dotname_symbol: str = ":",
-    new_name: str = "new",
+    append_suffix: str = "dotname",
     inplace: bool = False,
+    field_name: str = "DOTNAME",
 ) -> None:
     """
     Add a DOTNAME to the shapefile.
     """
 
-    def make_temp_path(path: Path, suffix: str) -> Path:
-        return path.with_name(path.stem + "_" + new_name + suffix)
+    def make_temp_path(path: Path, append_suffix: str, suffix: str) -> Path:
+        return path.with_name(path.stem + "_" + append_suffix + suffix)
 
     # Resolve shapefile
     path = Path(path) if isinstance(path, str) else path
@@ -40,7 +41,7 @@ def add_dotname(
                 f"Dot name fields {dot_name_fields} not found in shapefile {path}. Choices are {fields}"
             )
 
-        if "DOTNAME" in fields:
+        if field_name in fields:
             return
 
         dotnames = [
@@ -55,13 +56,13 @@ def add_dotname(
             raise ValueError(f"Dotnames are not unique in shapefile {path}")
 
         # create a new shapefile
-        with Writer(make_temp_path(path, path.suffix)) as w:
+        with Writer(make_temp_path(path, append_suffix=append_suffix, suffix=path.suffix)) as w:
             # add the original fields
             for i, field in enumerate(sf.fields):
                 if i > 0:
                     w.field(*field)
             # add the new field
-            w.field("DOTNAME", "C", 50)
+            w.field(field_name, "C", 50)
 
             record_cnt = 0
 
@@ -78,7 +79,7 @@ def add_dotname(
     # copy the new shapefile to the old
     if inplace:
         for suffix in [".shp", ".shx", ".prj", ".cpg", ".prj", ".dbf"]:
-            temp_path = make_temp_path(path, suffix)
+            temp_path = make_temp_path(path, append_suffix=append_suffix, suffix=suffix)
             if temp_path.exists():
                 temp_path.rename(path.with_suffix(suffix))
 

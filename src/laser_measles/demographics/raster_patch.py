@@ -16,7 +16,7 @@ from laser_measles.demographics.gadm import GADMShapefile
 
 
 class RasterPatchConfig(BaseModel):
-    id: str = Field(..., description="Unique identifier for the scenario", example="nigeria")
+    id: str = Field(..., description="Unique identifier for the scenario")
     region: str = Field(..., description="Country identifier (ISO3 code)")
     shapefile_path: str | Path = Field(..., description="Path to the shapefile")
     population_raster_path: str | Path = Field(..., description="Path to the population raster")

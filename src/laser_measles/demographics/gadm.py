@@ -3,6 +3,7 @@ GADM shapefiles
 """
 
 import io
+import os
 import zipfile
 from pathlib import Path
 
@@ -26,6 +27,23 @@ DOTNAME_FIELDS_DICT = {
 
 
 class GADMShapefile(AdminShapefile):
+
+    @model_validator(mode="after")
+    def check_dotname_fields(self) -> "GADMShapefile":
+        """
+        Check dotname_fields from shapefile name if not explicitly provided.
+        """
+        if self.dotname_fields is None:
+            shapefile_path = Path(self.shapefile)
+            admin_level = self._parse_admin_level_from_shapefile(shapefile_path)
+
+            if admin_level is None:
+                raise ValueError("Could not determine admin level from shapefile name. Please provide dotname_fields explicitly.")
+
+            self.dotname_fields = DOTNAME_FIELDS_DICT[admin_level]
+
+        return self
+                
     @classmethod
     def _parse_admin_level_from_shapefile(cls, shapefile_path: Path) -> int | None:
         """
@@ -49,21 +67,7 @@ class GADMShapefile(AdminShapefile):
             pass
         return None
 
-    @model_validator(mode="after")
-    def set_dotname_fields(self) -> "GADMShapefile":
-        """
-        Set dotname_fields from shapefile name if not explicitly provided.
-        """
-        if self.dotname_fields is None:
-            shapefile_path = Path(self.shapefile)
-            admin_level = self._parse_admin_level_from_shapefile(shapefile_path)
 
-            if admin_level is None:
-                raise ValueError("Could not determine admin level from shapefile name. Please provide dotname_fields explicitly.")
-
-            self.dotname_fields = DOTNAME_FIELDS_DICT[admin_level]
-
-        return self
 
     @classmethod
     def download(cls, country_code: str, admin_level: int, directory: str | Path | None = None, timeout: int = 60) -> "GADMShapefile":
@@ -84,8 +88,9 @@ class GADMShapefile(AdminShapefile):
         if not country:
             raise ValueError(f"Invalid country code: {country_code}")
         if directory is None:
-            directory = sc.thisdir()
+            directory = Path.getcwd() / country_code.upper()
         download_path = Path(directory) if isinstance(directory, str) else directory
+        download_path.mkdir(parents=True, exist_ok=True)
 
         url = GADM_URL.format(VERSION=VERSION, VERSION_INT=VERSION_INT, COUNTRY_CODE=country_code.upper())
         with alive_progress.alive_bar(

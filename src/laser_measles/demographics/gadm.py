@@ -14,6 +14,7 @@ import sciris as sc
 from pydantic import model_validator
 
 from laser_measles.demographics.admin_shapefile import AdminShapefile
+from laser_measles.demographics import shapefiles
 
 VERSION = "4.1"
 VERSION_INT = VERSION.replace(".", "")
@@ -42,6 +43,10 @@ class GADMShapefile(AdminShapefile):
 
             self.dotname_fields = DOTNAME_FIELDS_DICT[admin_level]
 
+        # Add dotname if it doesn't exist
+        if not shapefiles.check_field(self.shapefile, "DOTNAME"):
+            self.add_dotname()
+
         return self
                 
     @classmethod
@@ -67,8 +72,6 @@ class GADMShapefile(AdminShapefile):
             pass
         return None
 
-
-
     @classmethod
     def download(cls, country_code: str, admin_level: int, directory: str | Path | None = None, timeout: int = 60) -> "GADMShapefile":
         """
@@ -88,7 +91,7 @@ class GADMShapefile(AdminShapefile):
         if not country:
             raise ValueError(f"Invalid country code: {country_code}")
         if directory is None:
-            directory = Path.getcwd() / country_code.upper()
+            directory = Path.cwd() / country_code.upper()
         download_path = Path(directory) if isinstance(directory, str) else directory
         download_path.mkdir(parents=True, exist_ok=True)
 

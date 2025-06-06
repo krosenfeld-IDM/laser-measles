@@ -35,7 +35,9 @@ class RasterPatchGenerator:
     def __init__(self, config: RasterPatchConfig, verbose: bool = True):
         self.config = config
         self.verbose = verbose
-
+        self.population = None
+        self.mcv1 = None
+        self.mcv2 = None
         self._validate_config()
 
     def generate_demographics(self) -> None:
@@ -47,7 +49,7 @@ class RasterPatchGenerator:
         # self.generate_mortality_rates()
 
     def _validate_config(self) -> None:
-        if not shapefiles.check_dotname(self.config.shapefile_path):
+        if not shapefiles.check_field(self.config.shapefile_path, "DOTNAME"):
             raise ValueError(f"Shapefile {self.config.shapefile_path} does not have a DOTNAME field")
 
     def _validate_shapefile(self):
@@ -55,7 +57,7 @@ class RasterPatchGenerator:
         path = Path(self.config.shapefile_path) if isinstance(self.config.shapefile_path, str) else self.config.shapefile_path
         if not path.exists():
             raise FileNotFoundError(f"Shapefile path does not exist: {path}")
-        if not shapefiles.check_dotname(path):
+        if not shapefiles.check_field(path, "DOTNAME"):
             raise ValueError(f"Shapefile {path} does not have a DOTNAME field")
         self.shapefile = path
 
@@ -71,18 +73,14 @@ class RasterPatchGenerator:
                 # clip the raster to the shapefile
                 with alive_progress.alive_bar(title="Clipping population raster to shapefile"):
                     popdict = raster_clip(self.config.population_raster_path, self.shapefile, include_latlon=True)
-
-                    c[self.get_cache_key("population")] = popdict
-
-            popdict = c[self.get_cache_key("population")]
-
-            new_dict = {"dotname": [], "lat": [], "lon": [], "pop": []}
-            for k, v in popdict.items():
-                new_dict["dotname"].append(k)
-                new_dict["lat"].append(v["lat"])
-                new_dict["lon"].append(v["lon"])
-                new_dict["pop"].append(v["pop"])
-
+                    new_dict = {"dotname": [], "lat": [], "lon": [], "pop": []}
+                    for k, v in popdict.items():
+                        new_dict["dotname"].append(k)
+                        new_dict["lat"].append(v["lat"])
+                        new_dict["lon"].append(v["lon"])
+                        new_dict["pop"].append(v["pop"])
+                    c[self.get_cache_key("population")] = new_dict
+            new_dict = c[self.get_cache_key("population")]
             return pl.DataFrame(new_dict)
 
     def generate_mcv1(self) -> pl.DataFrame:
@@ -90,7 +88,6 @@ class RasterPatchGenerator:
 
         with cache.load_cache() as c:
             if self.get_cache_key("mcv1") not in c:
-
                 # Value array: Set negative values to zero
                 new_values_raster_file = self.config.mcv1_raster_path.with_name(f"{self.config.mcv1_raster_path.stem}_zeros.tif")
                 with Image.open(self.config.mcv1_raster_path) as raster:
@@ -101,7 +98,9 @@ class RasterPatchGenerator:
                     new_raster.save(new_values_raster_file, tiffinfo=raster.tag_v2)
 
                 # Weight array: Set negative values to zero
-                new_weight_raster_file = self.config.population_raster_path.with_name(f"{self.config.population_raster_path.stem}_zeros.tif")
+                new_weight_raster_file = self.config.population_raster_path.with_name(
+                    f"{self.config.population_raster_path.stem}_zeros.tif"
+                )
                 with Image.open(self.config.population_raster_path) as raster:
                     data = np.array(raster)
                     data[data < 0] = np.nan
@@ -111,7 +110,11 @@ class RasterPatchGenerator:
 
                 with alive_progress.alive_bar(title="Clipping MCV1 raster to shapefile"):
                     mcv_dict = raster_clip_weighted(
-                        new_weight_raster_file, new_values_raster_file, shape_stem=self.config.shapefile_path, include_latlon=True, weight_summary_func=np.mean
+                        new_weight_raster_file,
+                        new_values_raster_file,
+                        shape_stem=self.config.shapefile_path,
+                        include_latlon=True,
+                        weight_summary_func=np.mean,
                     )
                     c[self.get_cache_key("mcv1")] = mcv_dict
 

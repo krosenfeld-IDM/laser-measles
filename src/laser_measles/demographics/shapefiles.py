@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 from shapefile import Reader, Writer
 
@@ -102,14 +103,24 @@ def get_dataframe(shapefile_path: str | Path) -> pl.DataFrame:
 
     with Reader(shapefile_path) as sf:
         # Get all records and shapes
+        records = []
         shapes = []
-        dotnames = []
         for shaperec in sf.iterShapeRecords():
-            dotnames.append(shaperec.record.DOTNAME)
+            records.append(shaperec.record)
             shapes.append(shaperec.shape)
 
+        record_dict = defaultdict(list)
+        for record in records:
+            for key, value in record.as_dict().items():
+                record_dict[key].append(value)
+
         # Convert to DataFrame
-        df = pl.DataFrame({"dotname": dotnames, "shape": shapes})
+        df = pl.DataFrame(record_dict)
+
+        # Add shape column
+        df = df.with_columns(pl.Series(name="shape", values=shapes))
+
+        return df
 
         return df
 

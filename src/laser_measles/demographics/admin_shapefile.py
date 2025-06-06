@@ -15,7 +15,7 @@ from laser_measles.demographics.base import BaseShapefile
 
 
 class AdminShapefile(BaseShapefile):
-    dotname_fields: ClassVar[list[str]] = [] # List of fields to use for dotname. e.g., []
+    dotname_fields: list[str] | None = None  # List of fields to use for dotname. e.g., []
 
     def get_shapefile_parent(self) -> Path:
         """Get the parent directory of the shapefile."""
@@ -30,15 +30,21 @@ class AdminShapefile(BaseShapefile):
         patch_size_km: int,
     ) -> None:
         """Subdivide the GADM shapefile for a given admin level into patches of a given size."""
-        with alive_progress.alive_bar(
-            title=f"Subdividing shapefile {self.shapefile.stem}",
-        ) as _:
-            if not shapefiles.check_field(self.shapefile, "DOTNAME"):
-                raise ValueError(f"Shapefile {self.shapefile} does not have a DOTNAME field")
-            shape_subdivide(
-                shape_stem=self.shapefile,
-                out_dir=self.get_shapefile_parent(),
-                out_suffix=f"{patch_size_km}km",
-                box_target_area_km2=patch_size_km,
-            )
 
+        out_file = self.shapefile.parent / f"{self.shapefile.stem}_{patch_size_km}km.shp"
+        if out_file.exists():
+            return out_file
+        else:
+            # Add dotname if it doesn't exist
+            if not shapefiles.check_field(self.shapefile, "DOTNAME"):
+                self.add_dotname()
+            with alive_progress.alive_bar(
+                title=f"Subdividing shapefile {self.shapefile.stem}",
+            ) as _:
+                shape_subdivide(
+                    shape_stem=self.shapefile,
+                    out_dir=self.get_shapefile_parent(),
+                    out_suffix=f"{patch_size_km}km",
+                    box_target_area_km2=patch_size_km,
+                )
+                return out_file

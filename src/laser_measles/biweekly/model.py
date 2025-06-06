@@ -59,11 +59,11 @@ class BiweeklyModel:
 
         This class initializes the model with the given scenario and parameters. The scenario DataFrame must include the following columns:
 
-            - `dotname` (string): The name of the patch or location.
-            - `population` (integer): The population count for the patch.
-            - `lat` (float degrees): The latitude of the patch (e.g., from geographic or population centroid).
-            - `lon` (float degrees): The longitude of the patch (e.g., from geographic or population centroid).
-            - `mcv1` (float): The MCV1 coverage for the patch.
+            - `ids` (string): The name of the patch or location.
+            - `pop` (integer): The population count for the patch.
+            - `lat` (float degrees): The latitude of the patches (e.g., from geographic or population centroid).
+            - `lon` (float degrees): The longitude of the patches (e.g., from geographic or population centroid).
+            - `mcv1` (float): The MCV1 coverage for the patches.
     """
 
     def __init__(self, scenario: BaseScenario, parameters: BiweeklyParams, name: str = "biweekly") -> None:

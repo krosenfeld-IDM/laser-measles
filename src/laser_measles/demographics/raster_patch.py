@@ -1,3 +1,8 @@
+"""
+Raster patch generator for demographic data. 
+You can use this to generate initial conditions for a laser-measles scenario.
+"""
+
 from pathlib import Path
 
 import alive_progress
@@ -45,8 +50,6 @@ class RasterPatchGenerator:
         self.population = self.generate_population()
         if self.config.mcv1_raster_path is not None:
             self.mcv1 = self.generate_mcv1()
-        # self.generate_birth_rates()
-        # self.generate_mortality_rates()
 
     def _validate_config(self) -> None:
         if not shapefiles.check_field(self.config.shapefile_path, "DOTNAME"):
@@ -136,10 +139,7 @@ class RasterPatchGenerator:
 
     def generate_mortality_rates(self) -> pl.DataFrame: ...
 
-    def _add_dotname(self) -> None:
-        ...
-        # sf = Reader(shapefile)
-
+    def _add_dotname(self) -> None: ...
 
 if __name__ == "__main__":
     gadm = GADMShapefile("NGA")

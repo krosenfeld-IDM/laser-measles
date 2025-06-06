@@ -96,13 +96,14 @@ def run(**kwargs):
         Transmission,
     ]
 
-    # seed_infections_randomly(model, ninfections=100)
     # Seed initial infections in most populous patch at the start of the simulation
-    ipatch = np.argsort(model.patches.populations[0, :])[-1]
+    ipatch = np.argmax(model.patches.populations[0, :])
     seed_infections_in_patch(model, ipatch=ipatch, ninfections=100)
 
+    # Run the model
     model.run()
 
+    # Visualize the results
     if parameters["viz"]:
         model.visualize(pdf=parameters["pdf"])
 

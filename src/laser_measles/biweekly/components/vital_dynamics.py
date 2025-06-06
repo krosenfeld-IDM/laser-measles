@@ -1,6 +1,7 @@
 import numpy as np
 
 from laser_measles.biweekly.base import BaseComponent
+from laser_measles.biweekly.components.routine_immunization import RoutineImmunization
 
 
 def cast_type(a, dtype):
@@ -14,6 +15,13 @@ class VitalDynamics(BaseComponent):
 
     def __init__(self, model, verbose: bool = False) -> None:
         super().__init__(model, verbose)
+        # Check to see if there is a routine immunization component
+        for component in model.components:
+            if isinstance(component, RoutineImmunization):
+                    self.routine_immunization = component
+                    break
+            else:
+                self.routine_immunization = None
 
     def __call__(self, model, tick: int) -> None:
         # state counts
@@ -25,7 +33,8 @@ class VitalDynamics(BaseComponent):
         # Vital dynamics
         population = states.sum(axis=0)
         biweek_avg_births = population * (params.crude_birth_rate / 26.0 / 1000.0)
-        births = cast_type(np.random.poisson(biweek_avg_births), states.dtype)  # number of births
+        births = cast_type(np.random.poisson(biweek_avg_births), states.dtype)*model.scenario.mcv1
+
         biweek_avg_deaths = population * (params.crude_death_rate / 26.0 / 1000.0)
         deaths = cast_type(np.random.poisson(biweek_avg_deaths), states.dtype)  # number of deaths
 

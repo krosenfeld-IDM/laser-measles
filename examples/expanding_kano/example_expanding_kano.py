@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import polars as pl
 import seaborn as sns
 
-from laser_measles.demographics import cache
 from laser_measles.demographics import gadm
 from laser_measles.demographics import raster_patch
 from laser_measles.demographics import shapefiles
@@ -15,8 +14,8 @@ from laser_measles.demographics import shapefiles
 def summarize_scenario(df: pl.DataFrame) -> None:
     """Summarize the scenario."""
     # Get the total population
-    total_population = df["population"].sum()
-    num_with_pop = (df["population"] > 0).sum()
+    total_population = df["pop"].sum()
+    num_with_pop = (df["pop"] > 0).sum()
     print(f"Total population: {total_population}")
     print(f"Number of patches: {len(df)} ({num_with_pop} with pop > 0)")
     return total_population
@@ -30,19 +29,17 @@ this_dir = Path(__file__).parent
 population_raster_path = "gpw_v4_population_count_adjusted_to_2015_unwpp_country_totals_rev11_2010_30_sec_crop.tif"
 mcv1_raster_path = "mcv1_cov_mean_raked_2000_2023_11_crop.tif"
 
-# Prep shapefile
-g = gadm.GADMShapefile("NGA")
-# g.download()
-# g.add_dotnames()
-# g.shape_subdivide(admin_level=2, patch_size_km=50)
-with cache.load_cache() as c:
-    shapefile_path = c[g.get_cache_key() + ":2:50km"]
+# Download shapefile
+g_admin2 = gadm.GADMShapefile.download("NGA", 2)
+# subdivide
+shapefile = g_admin2.shape_subdivide(patch_size_km=50)
+g_admin1 = gadm.GADMShapefile(shapefile=shapefile.parent / "gadm41_NGA_1.shp")
 
 # Setup demographics generator
 config = raster_patch.RasterPatchConfig(
     id="nigeria_50km",
     region="NGA",
-    shapefile_path=shapefile_path,
+    shapefile_path=shapefile,
     population_raster_path=this_dir / population_raster_path,
     mcv1_raster_path=this_dir / mcv1_raster_path,
 )
@@ -54,10 +51,10 @@ df_pop = generator.population  # TODO: save everythign in a dataframe
 df_mcv1 = generator.mcv1
 
 # Get dataframe with the patches
-df = shapefiles.get_dataframe(generator.shapefile).join(df_pop, on="dotname", how="left")
+df = shapefiles.get_dataframe(shapefile).rename({"DOTNAME": "dotname"}).join(df_pop, on="dotname", how="left")
 df = df.join(df_mcv1.drop(["lat", "lon"]), on="dotname", how="left")
 assert len(df) == len(df_pop)
-df_states = shapefiles.get_dataframe(g.get_shapefile_path(admin_level=1))
+df_states = g_admin1.get_dataframe().rename({"DOTNAME": "dotname"})
 
 # Add "state" column
 df = df.with_columns(pl.col("dotname").str.split_exact(":", 2).struct.field("field_1").alias("state"))
@@ -159,9 +156,9 @@ with alive_progress.alive_bar() as bar:
     plt.figure(figsize=figsize)
     # Calculate number of connections (n choose 2) for each scenario
     connection_counts = [
-        (filtered_df_kano["population"] > 0).sum() * ((filtered_df_kano["population"] > 0).sum() - 1) // 2,
-        (filtered_df_kano_region["population"] > 0).sum() * ((filtered_df_kano_region["population"] > 0).sum() - 1) // 2,
-        (filtered_df_northern["population"] > 0).sum() * ((filtered_df_northern["population"] > 0).sum() - 1) // 2,
+        (filtered_df_kano["pop"] > 0).sum() * ((filtered_df_kano["pop"] > 0).sum() - 1) // 2,
+        (filtered_df_kano_region["pop"] > 0).sum() * ((filtered_df_kano_region["pop"] > 0).sum() - 1) // 2,
+        (filtered_df_northern["pop"] > 0).sum() * ((filtered_df_northern["pop"] > 0).sum() - 1) // 2,
     ]
 
     # Create bar plot with seaborn using lavender color

@@ -56,7 +56,7 @@ def init_gravity_diffusion(df: pl.DataFrame | tuple[np.ndarray, np.ndarray], sca
 
     n = len(df)
     compressed_distances = pairwise_haversine(df["lon"].to_numpy(), df["lat"].to_numpy())
-    pops = df["population"].to_numpy()
+    pops = df["pop"].to_numpy()
 
     # Get the indices for the upper triangle
     i, j = np.triu_indices(n, k=1)

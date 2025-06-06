@@ -39,8 +39,10 @@ import polars as pl
 from laser_core.laserframe import LaserFrame
 from laser_core.random import seed as seed_prng
 
+from laser_measles.biweekly.base import BaseScenario
+from laser_measles.biweekly.components import Infection
+from laser_measles.biweekly.components import VitalDynamics
 from laser_measles.biweekly.params import BiweeklyParams
-from laser_measles.biweekly.components import Step
 
 
 class BiweeklyModel:
@@ -64,13 +66,13 @@ class BiweeklyModel:
             - `mcv1` (float): The MCV1 coverage for the patch.
     """
 
-    def __init__(self, scenario: pl.DataFrame, parameters: BiweeklyParams, name: str = "biweekly") -> None:
+    def __init__(self, scenario: BaseScenario, parameters: BiweeklyParams, name: str = "biweekly") -> None:
         """
         Initialize the disease model with the given scenario and parameters.
 
         Args:
 
-            scenario (pd.DataFrame): A DataFrame containing the scenario data, including population, latitude, and longitude.
+            scenario (BaseScenario): A DataFrame containing the scenario data, including population, latitude, and longitude.
             parameters (PropertySet): A set of parameters for the model, including seed, nticks, k, a, b, c, max_frac, cbr, verbose, and pyramid_file.
             name (str, optional): The name of the model. Defaults to "biweekly".
 
@@ -98,7 +100,7 @@ class BiweeklyModel:
         # create the state vector for each of the nodes (3, num_nodes)
         self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
 
-        self.components = [Step]
+        self.components = [Infection, VitalDynamics]
 
         return
 
@@ -207,6 +209,6 @@ class BiweeklyModel:
             for key in sum_columns.index:
                 print(f"{key:{width}}: {sum_columns[key]:13,} µs")
             print("=" * (width + 2 + 13 + 3))
-            print(f"{'Total:':{width+1}} {sum_columns.sum():13,} microseconds")
+            print(f"{'Total:':{width + 1}} {sum_columns.sum():13,} microseconds")
 
         return

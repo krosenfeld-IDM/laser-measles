@@ -4,19 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "laser-measles"
-version = "0.5.0"
+version = "0.6.0"
 
 dependencies = [
-  "click",
-  "laser-core==0.1.1",
-  # "numpy>=1.26.4,<2.0.0", # use laser-core version
-  # "numba~=0.59.1",  # use laser-core version
-  "tqdm",
-  "geopandas",
-  "pandas",
+  "laser-core @ git+https://github.com/InstituteforDiseaseModeling/laser.git@v0.5.1",
+  "rastertoolkit @ git+https://github.com/InstituteforDiseaseModeling/RasterToolkit.git",
+  "diskcache>=5.6.3",
+  "appdirs>=1.4.4",
+  "pydantic>=2.11.5",
+  "pycountry>=24.6.1",
+  "requests>=2.32.3",
+  "alive-progress>=3.2.0",
+  "sciris>=3.2.1",
+  "polars>=1.30.0",
+  "pyarrow>=20.0.0",
 ]
 
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 
 authors = [
   {name = "Christopher Lorton", email = "christopher.lorton@gatesfoundation.org"},
@@ -51,10 +55,6 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-[project.optional-dependencies]
-dev = ["tox", "uv"]
-# docs = ["sphinx", "sphinx-rtd-theme"]
-
 [project.urls]
 Homepage = "https://example.com"
 Documentation = "https://laser-measles.readthedocs.io/en/latest/"
@@ -71,7 +71,7 @@ measles = "laser_measles.generic.model:run"
 extend-exclude = ["static", "ci/templates"]
 line-length = 140
 src = ["src", "tests"]
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint.per-file-ignores]
 "ci/*" = ["S"]
@@ -118,7 +118,7 @@ force-single-line = true
 quote-style = "double"
 
 [tool.bumpversion]
-current_version = "0.5.0"
+current_version = "0.6.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"
@@ -168,3 +168,16 @@ replace = 'version: "{new_version}"'
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+[dependency-groups]
+dev = [
+    "pytest-order>=1.1.1",
+]
+docs = [
+    "sphinx-autodoc-typehints>=3.0.1",
+    "sphinxcontrib-napoleon>=0.7",
+]
+examples = [
+    "notebook>=7.4.3",
+    "seaborn>=0.13.2",
+]

@@ -18,7 +18,7 @@ Imports:
     - matplotlib.pyplot as plt: For plotting.
     - matplotlib.backends.backend_pdf: For PDF generation.
     - matplotlib.figure: For figure handling.
-    - tqdm: For progress bar visualization.
+    - alive_progress: For progress bar visualization.
     - laser_measles.measles_births: For handling measles birth data.
     - laser_measles.utils: For utility functions.
 
@@ -51,6 +51,7 @@ from datetime import datetime
 import click
 import numpy as np
 import pandas as pd
+from alive_progress import alive_bar
 from laser_core.demographics import AliasedDistribution
 from laser_core.demographics import load_pyramid_csv
 from laser_core.laserframe import LaserFrame
@@ -61,7 +62,6 @@ from laser_core.random import seed as seed_prng
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
-from tqdm import tqdm
 
 from laser_measles import Births
 from laser_measles.utils import calc_capacity
@@ -121,9 +121,7 @@ class Model:
         # We need some patches with population data ...
         npatches = len(scenario)
         self.patches = LaserFrame(npatches)
-
-        # "activate" all the patches (count == capacity)
-        self.patches.add(npatches)
+        # keep track of population per patch
         self.patches.add_vector_property("populations", length=parameters.nticks + 1)
         # set patch populations at t = 0 to initial populations
         self.patches.populations[0, :] = scenario.population
@@ -143,17 +141,16 @@ class Model:
         self.patches.network[:, :] = network
 
         # Initialize the model population
-
         capacity = calc_capacity(self.patches.populations[0, :].sum(), parameters.nticks, parameters.cbr, parameters.verbose)
-        self.population = LaserFrame(capacity)
-
+        self.population = LaserFrame(capacity, initial_count=0)
         self.population.add_scalar_property("nodeid", dtype=np.uint16)
+        first = 0
         for nodeid, count in enumerate(self.patches.populations[0, :]):
             first, last = self.population.add(count)
             self.population.nodeid[first:last] = nodeid
 
         # Initialize population ages
-
+        self.population.add_scalar_property("dob", dtype=np.int32)
         pyramid_file = parameters.pyramid_file
         age_distribution = load_pyramid_csv(pyramid_file)
         both = age_distribution[:, 2] + age_distribution[:, 3]  # males + females
@@ -162,14 +159,15 @@ class Model:
         bin_max_age_days = (age_distribution[:, 1] + 1) * 365  # maximum age for bin, in days (exclude this value)
         initial_pop = self.population.count
         samples = sampler.sample(initial_pop)  # sample for bins from pyramid
-        self.population.add_scalar_property("dob", dtype=np.int32)
         mask = np.zeros(initial_pop, dtype=bool)
         dobs = self.population.dob[0:initial_pop]
         click.echo("Assigning day of year of birth to agents…")
-        for i in tqdm(range(len(age_distribution))):  # for each possible bin value...
-            mask[:] = samples == i  # ...find the agents that belong to this bin
-            # ...and assign a random age, in days, within the bin
-            dobs[mask] = self.prng.integers(bin_min_age_days[i], bin_max_age_days[i], mask.sum())
+        with alive_bar(len(age_distribution)) as bar:
+            for i in range(len(age_distribution)):  # for each possible bin value...
+                mask[:] = samples == i  # ...find the agents that belong to this bin
+                # ...and assign a random age, in days, within the bin
+                dobs[mask] = self.prng.integers(bin_min_age_days[i], bin_max_age_days[i], mask.sum())
+                bar()
 
         dobs *= -1  # convert ages to date of birth prior to _now_ (t = 0) ∴ negative
 
@@ -264,15 +262,17 @@ class Model:
         click.echo(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
 
         self.metrics = []
-        for tick in tqdm(range(self.params.nticks)):
-            timing = [tick]
-            for phase in self.phases:
-                tstart = datetime.now(tz=None)  # noqa: DTZ005
-                phase(self, tick)
-                tfinish = datetime.now(tz=None)  # noqa: DTZ005
-                delta = tfinish - tstart
-                timing.append(delta.seconds * 1_000_000 + delta.microseconds)
-            self.metrics.append(timing)
+        with alive_bar(self.params.nticks) as bar:
+            for tick in range(self.params.nticks):
+                timing = [tick]
+                for phase in self.phases:
+                    tstart = datetime.now(tz=None)  # noqa: DTZ005
+                    phase(self, tick)
+                    tfinish = datetime.now(tz=None)  # noqa: DTZ005
+                    delta = tfinish - tstart
+                    timing.append(delta.seconds * 1_000_000 + delta.microseconds)
+                self.metrics.append(timing)
+                bar()
 
         self.tfinish = datetime.now(tz=None)  # noqa: DTZ005
         print(f"Completed the {self.name} model at {self.tfinish}…")

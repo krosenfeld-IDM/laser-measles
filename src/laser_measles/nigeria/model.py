@@ -96,13 +96,14 @@ def run(**kwargs):
         Transmission,
     ]
 
-    # seed_infections_randomly(model, ninfections=100)
     # Seed initial infections in most populous patch at the start of the simulation
-    ipatch = np.argsort(model.patches.populations[0, :])[-1]
+    ipatch = np.argmax(model.patches.populations[0, :])
     seed_infections_in_patch(model, ipatch=ipatch, ninfections=100)
 
+    # Run the model
     model.run()
 
+    # Visualize the results
     if not parameters["no_viz"]:
         model.visualize(pdf=parameters["pdf"])
 
@@ -111,4 +112,4 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     ctx = click.Context(run)
-    ctx.invoke(run, nticks=365, seed=20241107, verbose=True, pdf=False)
+    ctx.invoke(run, nticks=365, seed=20241107, viz=True,verbose=True, pdf=False)

@@ -41,9 +41,9 @@ Overview
     :alt: Supported implementations
     :target: https://test.pypi.org/project/laser-measles/
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/InstituteforDiseaseModeling/laser-measles/v0.6.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/InstituteforDiseaseModeling/laser-measles/v0.6.1.svg
     :alt: Commits since latest release
-    :target: https://github.com/krosenfeld-IDM/laser-measles/compare/v0.6.0...main
+    :target: https://github.com/krosenfeld-IDM/laser-measles/compare/v0.6.1...main
 
 
 

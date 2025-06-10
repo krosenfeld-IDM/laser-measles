@@ -26,6 +26,7 @@ Learn more
 
 .. toctree::
    :maxdepth: 2
+   installation
    contributing
    authors
    changelog

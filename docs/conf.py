@@ -113,8 +113,13 @@ def setup(app):
 
 
 # Modify this to not rerun the Jupyter notebook cells -- usually set by build_docs
-nbsphinx_execute = 'always'
-nbsphinx_timeout = 300
+nbsphinx_execute = 'auto'
+nbsphinx_timeout = 600
+nbsphinx_allow_errors = True
+nbsphinx_execute_arguments = [
+    "--InlineBackend.figure_formats={'svg', 'pdf'}",
+    "--InlineBackend.rc={'figure.dpi': 96}",
+]
 
 # OpenSearch options
 html_use_opensearch = 'docs.idmod.org/projects/laser-measles/en/latest'

@@ -23,62 +23,8 @@ Welcome to laser-measles
 
 .. end-badges
 
-Laser-measles helps you build and analyze spatial models of measles implemented with the LASER toolkit.
-
-Installation
-============
+laser-measles helps you build and analyze spatial models of measles implemented with the LASER toolkit.
 
 .. code-block:: bash
 
     pip install laser-measles
-
-You can also install the in-development version with:
-
-.. code-block:: bash
-
-    pip install git+https://github.com/InstituteforDiseaseModeling/laser-measles.git@main
-
-Documentation
-=============
-
-
-https://laser-measles.readthedocs.io/en/latest/
-
-
-Development
-===========
-
-To run all the tests run:
-
-.. code-block:: bash
-
-    tox
-
-And to build the documentation run:
-
-.. code-block:: bash
-
-    tox -e docs
-
-Note, to combine the coverage data from all the tox environments run:
-
-.. list-table::
-    :widths: 10 90
-    :stub-columns: 1
-
-    - - Windows
-      - ::
-
-            set PYTEST_ADDOPTS=--cov-append
-            tox
-
-    - - Other
-      - ::
-
-            PYTEST_ADDOPTS=--cov-append tox
-
-You can check that the bump versioning works by running:
-
-.. code-block:: bash
-
-    uvx bump-my-version bump minor --dry-run -vv

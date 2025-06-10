@@ -36,7 +36,10 @@ class GADMShapefile(AdminShapefile):
         """
         if self.dotname_fields is None:
             shapefile_path = Path(self.shapefile)
-            admin_level = self._parse_admin_level_from_shapefile(shapefile_path)
+            if self.admin_level is None:
+                admin_level = self._parse_admin_level_from_shapefile(shapefile_path)
+            else:
+                admin_level = self.admin_level
 
             if admin_level is None:
                 raise ValueError("Could not determine admin level from shapefile name. Please provide dotname_fields explicitly.")
@@ -69,7 +72,7 @@ class GADMShapefile(AdminShapefile):
                 if level in DOTNAME_FIELDS_DICT:
                     return level
         except (ValueError, IndexError):
-            pass
+            print(f"Could not determine admin level from shapefile name: {shapefile_path}")
         return None
 
     @classmethod

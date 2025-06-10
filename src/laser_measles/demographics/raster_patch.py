@@ -25,16 +25,16 @@ from laser_measles.demographics.gadm import GADMShapefile
 class RasterPatchConfig(BaseModel):
     id: str = Field(..., description="Unique identifier for the scenario")
     region: str = Field(..., description="Country identifier (ISO3 code)")
-    shapefile_path: str | Path = Field(..., description="Path to the shapefile")
+    shapefile: str | Path = Field(..., description="Path to the shapefile")
     population_raster_path: str | Path = Field(..., description="Path to the population raster")
     mcv1_raster_path: str | Path | None = Field(None, description="Path to the MCV1 raster")
     mcv2_raster_path: str | Path | None = Field(None, description="Path to the MCV2 raster")
 
-    @field_validator("shapefile_path")
-    def shapefile_path_exists(cls, v, info):
+    @field_validator("shapefile")
+    def shapefile_exists(cls, v, info):
         path = Path(v) if isinstance(v, str) else v
         if not path.exists():
-            raise ValueError(f"Shapefile path does not exist: {path}")
+            raise ValueError(f"Shapefile does not exist: {path}")
         return v
 
 
@@ -85,13 +85,13 @@ class RasterPatchGenerator:
             self.mcv1 = self.generate_mcv1()
 
     def _validate_config(self) -> None:
-        if not shapefiles.check_field(self.config.shapefile_path, "DOTNAME"):
+        if not shapefiles.check_field(self.config.shapefile, "DOTNAME"):
             raise ValueError(f"Shapefile {self.config.shapefile_path} does not have a DOTNAME field")
         self._validate_shapefile()
 
     def _validate_shapefile(self):
         """ """
-        path = Path(self.config.shapefile_path) if isinstance(self.config.shapefile_path, str) else self.config.shapefile_path
+        path = Path(self.config.shapefile) if isinstance(self.config.shapefile, str) else self.config.shapefile
         if not path.exists():
             raise FileNotFoundError(f"Shapefile path does not exist: {path}")
         if not shapefiles.check_field(path, "DOTNAME"):
@@ -154,7 +154,7 @@ class RasterPatchGenerator:
                     mcv_dict = raster_clip_weighted(
                         new_weight_raster_file,
                         new_values_raster_file,
-                        shape_stem=self.config.shapefile_path,
+                        shape_stem=self.config.shapefile,
                         include_latlon=True,
                         weight_summary_func=np.mean,
                     )
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         end_year=2020,
         granularity="patch",
         patch_size_km=25,
-        shapefile_path=gadm.get_shapefile_path(2),
+        shapefile=gadm.get_shapefile_path(2),
         population_raster_path=gadm.shapefile_dir,
     )
     generator = RasterPatchGenerator(config)

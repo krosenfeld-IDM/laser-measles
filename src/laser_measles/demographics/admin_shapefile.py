@@ -15,6 +15,7 @@ from laser_measles.demographics.base import BaseShapefile
 
 
 class AdminShapefile(BaseShapefile):
+    admin_level: int | None = None
     dotname_fields: list[str] | None = None  # List of fields to use for dotname. e.g., []
 
     def get_shapefile_parent(self) -> Path:
@@ -29,12 +30,10 @@ class AdminShapefile(BaseShapefile):
         self,
         patch_size_km: int,
     ) -> None:
-        """Subdivide the GADM shapefile for a given admin level into patches of a given size."""
+        """Subdivide the shapefile for a given admin level into patches of a given size."""
 
         out_file = self.shapefile.parent / f"{self.shapefile.stem}_{patch_size_km}km.shp"
-        if out_file.exists():
-            return out_file
-        else:
+        if not out_file.exists(): 
             # Add dotname if it doesn't exist
             if not shapefiles.check_field(self.shapefile, "DOTNAME"):
                 self.add_dotname()
@@ -47,4 +46,5 @@ class AdminShapefile(BaseShapefile):
                     out_suffix=f"{patch_size_km}km",
                     box_target_area_km2=patch_size_km,
                 )
-                return out_file
+        self.shapefile = out_file
+        return out_file

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "laser-measles"
-version = "0.6.1"
+version = "0.6.2"
 
 dependencies = [
   "laser-core==0.5.1",
@@ -117,7 +117,7 @@ force-single-line = true
 quote-style = "double"
 
 [tool.bumpversion]
-current_version = "0.6.1"
+current_version = "0.6.2"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"

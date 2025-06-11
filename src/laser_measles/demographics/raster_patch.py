@@ -5,6 +5,8 @@ You can use this to generate initial conditions for a laser-measles scenario.
 
 import os
 from datetime import datetime
+from datetime import timezone
+from datetime import UTC
 from pathlib import Path
 
 import alive_progress
@@ -26,9 +28,9 @@ class RasterPatchConfig(BaseModel):
     id: str = Field(..., description="Unique identifier for the scenario")
     region: str = Field(..., description="Country identifier (ISO3 code)")
     shapefile: str | Path = Field(..., description="Path to the shapefile")
-    population_raster_path: str | Path = Field(..., description="Path to the population raster")
-    mcv1_raster_path: str | Path | None = Field(None, description="Path to the MCV1 raster")
-    mcv2_raster_path: str | Path | None = Field(None, description="Path to the MCV2 raster")
+    population_raster: str | Path = Field(..., description="Path to the population raster")
+    mcv1_raster: str | Path | None = Field(None, description="Path to the MCV1 raster")
+    mcv2_raster: str | Path | None = Field(None, description="Path to the MCV2 raster")
 
     @field_validator("shapefile")
     def shapefile_exists(cls, v, info):
@@ -68,12 +70,12 @@ class RasterPatchGenerator:
                 return True
 
             # Check population raster modification time
-            if self._get_file_mtime(self.config.population_raster_path) > cache_time:
+            if self._get_file_mtime(self.config.population_raster) > cache_time:
                 return True
 
             # Check MCV1 raster if it exists
-            if cache_key == "mcv1" and self.config.mcv1_raster_path:
-                if self._get_file_mtime(self.config.mcv1_raster_path) > cache_time:
+            if cache_key == "mcv1" and self.config.mcv1_raster:
+                if self._get_file_mtime(self.config.mcv1_raster) > cache_time:
                     return True
 
             return False
@@ -81,12 +83,19 @@ class RasterPatchGenerator:
     def generate_demographics(self) -> None:
         self._validate_shapefile()
         self.population = self.generate_population()
-        if self.config.mcv1_raster_path is not None:
+        if self.config.mcv1_raster is not None:
             self.mcv1 = self.generate_mcv1()
 
     def _validate_config(self) -> None:
         if not shapefiles.check_field(self.config.shapefile, "DOTNAME"):
             raise ValueError(f"Shapefile {self.config.shapefile_path} does not have a DOTNAME field")
+        
+        # Validate mcv1_raster_path if provided
+        if self.config.mcv1_raster is not None:
+            path = Path(self.config.mcv1_raster) if isinstance(self.config.mcv1_raster, str) else self.config.mcv1_raster
+            if not path.exists():
+                raise FileNotFoundError(f"MCV1 raster path does not exist: {path}")
+        
         self._validate_shapefile()
 
     def _validate_shapefile(self):
@@ -111,7 +120,7 @@ class RasterPatchGenerator:
             if cache_key not in c or self._check_source_files_modified(cache_key):
                 # clip the raster to the shapefile
                 with alive_progress.alive_bar(title="Clipping population raster to shapefile"):
-                    popdict = raster_clip(self.config.population_raster_path, self.shapefile, include_latlon=True)
+                    popdict = raster_clip(self.config.population_raster, self.shapefile, include_latlon=True)
                     new_dict = {"dotname": [], "lat": [], "lon": [], "pop": []}
                     for k, v in popdict.items():
                         new_dict["dotname"].append(k)
@@ -120,7 +129,7 @@ class RasterPatchGenerator:
                         new_dict["pop"].append(v["pop"])
 
                     # Store data with timestamp
-                    c[cache_key] = {"data": new_dict, "timestamp": datetime.now().timestamp()}
+                    c[cache_key] = {"data": new_dict, "timestamp": datetime.now(UTC).timestamp()}
 
             return pl.DataFrame(c[cache_key]["data"])
 
@@ -128,11 +137,14 @@ class RasterPatchGenerator:
         """MCV1 coverage, population weighted"""
         cache_key = self.get_cache_key("mcv1")
 
+        if self.config.mcv1_raster is None:
+            raise ValueError("MCV1 raster path is not provided")
+
         with cache.load_cache() as c:
             if cache_key not in c or self._check_source_files_modified(cache_key):
                 # Value array: Set negative values to zero
-                new_values_raster_file = self.config.mcv1_raster_path.with_name(f"{self.config.mcv1_raster_path.stem}_zeros.tif")
-                with Image.open(self.config.mcv1_raster_path) as raster:
+                new_values_raster_file = self.config.mcv1_raster.with_name(f"{self.config.mcv1_raster.stem}_zeros.tif")
+                with Image.open(self.config.mcv1_raster) as raster:
                     data = np.array(raster)
                     data[data < 0] = 0
                     new_raster = Image.fromarray(data, mode=raster.mode)
@@ -140,10 +152,10 @@ class RasterPatchGenerator:
                     new_raster.save(new_values_raster_file, tiffinfo=raster.tag_v2)
 
                 # Weight array: Set negative values to zero
-                new_weight_raster_file = self.config.population_raster_path.with_name(
-                    f"{self.config.population_raster_path.stem}_zeros.tif"
+                new_weight_raster_file = self.config.population_raster.with_name(
+                    f"{self.config.population_raster.stem}_zeros.tif"
                 )
-                with Image.open(self.config.population_raster_path) as raster:
+                with Image.open(self.config.population_raster) as raster:
                     data = np.array(raster)
                     data[data < 0] = np.nan
                     new_raster = Image.fromarray(data, mode=raster.mode)
@@ -160,7 +172,7 @@ class RasterPatchGenerator:
                     )
 
                     # Store data with timestamp
-                    c[cache_key] = {"data": mcv_dict, "timestamp": datetime.now().timestamp()}
+                    c[cache_key] = {"data": mcv_dict, "timestamp": datetime.now(UTC).timestamp()}
 
                 # remove the rasters
                 new_weight_raster_file.unlink()

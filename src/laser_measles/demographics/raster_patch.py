@@ -89,13 +89,13 @@ class RasterPatchGenerator:
     def _validate_config(self) -> None:
         if not shapefiles.check_field(self.config.shapefile, "DOTNAME"):
             raise ValueError(f"Shapefile {self.config.shapefile_path} does not have a DOTNAME field")
-        
+
         # Validate mcv1_raster_path if provided
         if self.config.mcv1_raster is not None:
             path = Path(self.config.mcv1_raster) if isinstance(self.config.mcv1_raster, str) else self.config.mcv1_raster
             if not path.exists():
                 raise FileNotFoundError(f"MCV1 raster path does not exist: {path}")
-        
+
         self._validate_shapefile()
 
     def _validate_shapefile(self):
@@ -152,9 +152,7 @@ class RasterPatchGenerator:
                     new_raster.save(new_values_raster_file, tiffinfo=raster.tag_v2)
 
                 # Weight array: Set negative values to zero
-                new_weight_raster_file = self.config.population_raster.with_name(
-                    f"{self.config.population_raster.stem}_zeros.tif"
-                )
+                new_weight_raster_file = self.config.population_raster.with_name(f"{self.config.population_raster.stem}_zeros.tif")
                 with Image.open(self.config.population_raster) as raster:
                     data = np.array(raster)
                     data[data < 0] = np.nan
@@ -171,12 +169,12 @@ class RasterPatchGenerator:
                         weight_summary_func=np.mean,
                     )
 
+                    # remove the rasters
+                    new_weight_raster_file.unlink()
+                    new_values_raster_file.unlink()
+
                     # Store data with timestamp
                     c[cache_key] = {"data": mcv_dict, "timestamp": datetime.now(UTC).timestamp()}
-
-                # remove the rasters
-                new_weight_raster_file.unlink()
-                new_values_raster_file.unlink()
 
         mcv_dict = c[cache_key]["data"]
         new_dict = {"dotname": [], "lat": [], "lon": [], "mcv1": []}

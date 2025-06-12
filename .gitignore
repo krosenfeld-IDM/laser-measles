@@ -82,3 +82,6 @@ tmp/
 *.prj
 *.shx
 *.cpg
+
+# Docs
+docs/reference/

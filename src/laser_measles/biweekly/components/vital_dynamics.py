@@ -49,7 +49,7 @@ class VitalDynamicsProcess(BaseComponent):
         unvaccinated_births = cast_type(np.random.poisson(biweek_avg_births*(1-np.array(model.scenario['mcv1']))), states.dtype)
         # births = cast_type(np.random.poisson(biweek_avg_births)*np.array(model.scenario['mcv1']), states.dtype)
 
-        biweek_avg_deaths = population * (params.crude_death_rate / 26.0 / 1000.0)
+        biweek_avg_deaths = states * (params.crude_death_rate / 26.0 / 1000.0)
         deaths = cast_type(np.random.poisson(biweek_avg_deaths), states.dtype)  # number of deaths
 
         states[0] += unvaccinated_births  # add births to S

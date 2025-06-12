@@ -40,8 +40,8 @@ from laser_core.laserframe import LaserFrame
 from laser_core.random import seed as seed_prng
 
 from laser_measles.biweekly.base import BaseScenario
-from laser_measles.biweekly.components import Infection
-from laser_measles.biweekly.components import VitalDynamics
+from laser_measles.biweekly.components import InfectionProcess
+from laser_measles.biweekly.components import VitalDynamicsProcess
 from laser_measles.biweekly.params import BiweeklyParams
 
 
@@ -101,7 +101,7 @@ class BiweeklyModel:
         self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
 
         # Default set of components
-        self.components = [Infection, VitalDynamics]
+        self.components = [InfectionProcess, VitalDynamicsProcess]
 
         return
 

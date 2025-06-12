@@ -12,8 +12,19 @@ from laser_measles.biweekly.base import BaseComponent
 
 
 class FadeOutTracker(BaseComponent):
-    """
-    Component for tracking the number of nodes with fade-outs.
+    """A component that tracks and records the number of nodes experiencing fade-outs over time.
+
+    This component maintains a time series of fade-out counts by monitoring the number of nodes
+    that have transitioned to state 0 at each simulation tick. The data can be used for
+    analyzing the temporal dynamics of fade-outs in the network.
+
+    Attributes:
+        fade_out_tracker (numpy.ndarray): An array of length nticks that stores the count of
+            nodes in state 0 at each time tick.
+
+    Args:
+        model: The simulation model instance.
+        verbose (bool, optional): Whether to enable verbose logging. Defaults to False.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:

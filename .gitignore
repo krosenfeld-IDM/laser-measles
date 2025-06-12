@@ -75,3 +75,10 @@ docs/_build
 
 # tmp directory
 tmp/
+
+# Shapefiles
+*.shp
+*.dbf
+*.prj
+*.shx
+*.cpg

@@ -7,9 +7,38 @@ def cast_type(a, dtype):
     return a.astype(dtype) if a.dtype != dtype else a
 
 
-class Infection(BaseComponent):
+class InfectionProcess(BaseComponent):
     """
-    Component for simulating the spread of infection in the model
+    Component for simulating the spread of infection in the model.
+
+    This class implements a stochastic infection process that models disease transmission
+    between different population groups. It uses a seasonally-adjusted transmission rate
+    and accounts for mixing between different population groups.
+
+    The infection process follows these steps:
+    1. Calculates expected new infections based on:
+       - Base transmission rate (beta)
+       - Seasonal variation
+       - Population mixing matrix
+       - Current number of infected individuals
+    2. Converts expected infections to probabilities
+    3. Samples actual new infections from a binomial distribution
+    4. Updates population states:
+       - Moves current infected to recovered (14-day recovery period)
+       - Adds new infections to infected population
+       - Removes new infections from susceptible population
+
+    Parameters
+    ----------
+    model : object
+        The simulation model containing population states and parameters
+    verbose : bool, default=False
+        Whether to print detailed information during execution
+
+    Notes
+    -----
+    The infection process assumes a 14-day recovery period and uses a seasonal
+    transmission rate that varies sinusoidally over time.
     """
 
     def __init__(self, model, verbose: bool = False) -> None:

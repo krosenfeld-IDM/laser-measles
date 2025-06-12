@@ -15,12 +15,6 @@ class StateTracker(BaseComponent):
     The states are dynamically generated as properties based on model.params.states
     (e.g., "S", "I", "R"). Each state can be accessed as a property that returns
     a numpy array of shape (nticks,) containing the time series for that state.
-
-    Example:
-        >>> tracker = StateTracker(model)
-        >>> susceptible = tracker.S  # Get time series of susceptible individuals
-        >>> infected = tracker.I     # Get time series of infected individuals
-        >>> recovered = tracker.R    # Get time series of recovered individuals
     """
 
     def __init__(self, model, verbose: bool = False) -> None:

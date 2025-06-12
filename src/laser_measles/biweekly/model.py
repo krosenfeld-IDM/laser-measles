@@ -100,6 +100,7 @@ class BiweeklyModel:
         # create the state vector for each of the nodes (3, num_nodes)
         self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
 
+        # Default set of components
         self.components = [Infection, VitalDynamics]
 
         return

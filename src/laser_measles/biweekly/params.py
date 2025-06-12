@@ -7,6 +7,7 @@ from pydantic import Field
 
 # Constants
 TIME_STEP_DAYS = 14  # Number of days per time step (biweekly)
+STATES = ["S", "I", "R"]  # Compartments/states for discrete-time model
 
 class BiweeklyParams(BaseModel):
     """
@@ -23,12 +24,15 @@ class BiweeklyParams(BaseModel):
     season_start: int = Field(0, description="Season start (0-25)", ge=0, le=25)
     seed: int = Field(20241107, description="Random seed")
     start_time: str = Field("2005-01", description="Initial start time of simulation in YYYY-MM format")
-    states: list[str] = Field(["S", "I", "R"], description="Compartments/states for discrete-time model")
     verbose: bool = Field(False, description="Whether to print verbose output")
 
     @property
     def time_step_days(self) -> int:
         return TIME_STEP_DAYS
+
+    @property
+    def states(self) -> list[str]:
+        return STATES
 
     @property
     def mixing(self) -> np.ndarray:

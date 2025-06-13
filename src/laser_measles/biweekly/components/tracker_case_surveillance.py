@@ -1,5 +1,8 @@
 import numpy as np
 import polars as pl
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from pydantic import BaseModel, Field
 from typing import Callable
 
@@ -12,19 +15,11 @@ def cast_type(a, dtype):
 
 class CaseSurveillanceParams(BaseModel):
     """Parameters specific to the case surveillance component."""
+
     detection_rate: float = Field(0.1, description="Probability of detecting an infected case", ge=0.0, le=1.0)
-    filter_fn: Callable[[str], bool] = Field(
-        lambda x: True,
-        description="Function to filter which nodes to include in aggregation"
-    )
-    aggregate_cases: bool = Field(
-        True,
-        description="Whether to aggregate cases by geographic level"
-    )
-    aggregation_level: int = Field(
-        3,
-        description="Number of levels to use for aggregation (e.g., 3 for country:state:lga)"
-    )
+    filter_fn: Callable[[str], bool] = Field(lambda x: True, description="Function to filter which nodes to include in aggregation")
+    aggregate_cases: bool = Field(True, description="Whether to aggregate cases by geographic level")
+    aggregation_level: int = Field(3, description="Number of levels to use for aggregation (e.g., 3 for country:state:lga)")
 
 
 class CaseSurveillanceTracker(BaseComponent):
@@ -56,37 +51,31 @@ class CaseSurveillanceTracker(BaseComponent):
         super().__init__(model, verbose)
         self.params = params or CaseSurveillanceParams()
         self._validate_params()
-        
+
         # Extract node IDs and create mapping for filtered nodes
         self.node_mapping = {}
         self.node_indices = []
-        
-        for node_idx, node_id in enumerate(model.scenario['ids']):
+
+        for node_idx, node_id in enumerate(model.scenario["ids"]):
             if self.params.filter_fn(node_id):
                 if self.params.aggregate_cases:
                     # Create geographic grouping key
-                    group_key = ':'.join(node_id.split(':')[:self.params.aggregation_level])
+                    group_key = ":".join(node_id.split(":")[: self.params.aggregation_level])
                     if group_key not in self.node_mapping:
                         self.node_mapping[group_key] = []
                     self.node_mapping[group_key].append(node_idx)
                 else:
                     self.node_indices.append(node_idx)
-        
+
         # Initialize reported cases tracker
         if self.params.aggregate_cases:
             # For aggregated cases: nticks x num_groups
-            self.reported_cases = np.zeros(
-                (model.params.nticks, len(self.node_mapping)),
-                dtype=model.nodes.states.dtype
-            )
+            self.reported_cases = np.zeros((model.params.nticks, len(self.node_mapping)), dtype=model.nodes.states.dtype)
             # Store group IDs in order
             self.group_ids = sorted(self.node_mapping.keys())
         else:
             # For individual nodes: nticks x num_filtered_nodes
-            self.reported_cases = np.zeros(
-                (model.params.nticks, len(self.node_indices)),
-                dtype=model.nodes.states.dtype
-            )
+            self.reported_cases = np.zeros((model.params.nticks, len(self.node_indices)), dtype=model.nodes.states.dtype)
 
     def _validate_params(self) -> None:
         """Validate component parameters."""
@@ -96,34 +85,28 @@ class CaseSurveillanceTracker(BaseComponent):
     def __call__(self, model, tick: int) -> None:
         # Get current infected cases
         infected = model.nodes.states[1]  # Infected state is index 1
-        
+
         if self.params.aggregate_cases:
             # For each group, aggregate detected cases from its nodes
             for group_idx, (group_id, node_indices) in enumerate(self.node_mapping.items()):
                 # Get infected cases for this group's nodes
                 group_infected = infected[node_indices]
-                
+
                 # Simulate case detection using binomial distribution
-                detected_cases = cast_type(
-                    np.random.binomial(n=group_infected, p=self.params.detection_rate),
-                    model.nodes.states.dtype
-                )
-                
+                detected_cases = cast_type(np.random.binomial(n=group_infected, p=self.params.detection_rate), model.nodes.states.dtype)
+
                 # Store total detected cases for this group
                 self.reported_cases[tick, group_idx] = detected_cases.sum()
         else:
             # For individual nodes
             filtered_infected = infected[self.node_indices]
-            detected_cases = cast_type(
-                np.random.binomial(n=filtered_infected, p=self.params.detection_rate),
-                model.nodes.states.dtype
-            )
+            detected_cases = cast_type(np.random.binomial(n=filtered_infected, p=self.params.detection_rate), model.nodes.states.dtype)
             self.reported_cases[tick] = detected_cases
 
     def get_reported_cases(self) -> pl.DataFrame:
         """
         Get a DataFrame of reported cases over time.
-        
+
         Returns
         -------
         pl.DataFrame
@@ -134,25 +117,67 @@ class CaseSurveillanceTracker(BaseComponent):
         """
         # Create a list to store the data
         data = []
-        
+
         if self.params.aggregate_cases:
             # For each tick and group, add the reported cases
             for tick in range(self.model.params.nticks):
                 for group_idx, group_id in enumerate(self.group_ids):
-                    data.append({
-                        'tick': tick,
-                        'group_id': group_id,
-                        'cases': self.reported_cases[tick, group_idx]
-                    })
+                    data.append({"tick": tick, "group_id": group_id, "cases": self.reported_cases[tick, group_idx]})
         else:
             # For each tick and node, add the reported cases
             for tick in range(self.model.params.nticks):
                 for node_idx, node_id in enumerate(self.node_indices):
-                    data.append({
-                        'tick': tick,
-                        'node_id': self.model.scenario['ids'][node_id],
-                        'cases': self.reported_cases[tick, node_idx]
-                    })
-        
+                    data.append(
+                        {"tick": tick, "node_id": self.model.scenario["ids"][node_id], "cases": self.reported_cases[tick, node_idx]}
+                    )
+
         # Create DataFrame
-        return pl.DataFrame(data) 
+        return pl.DataFrame(data)
+
+    def plot(self, fig: Figure = None):
+        """
+        Create a heatmap visualization of log(cases+1) over time.
+
+        Parameters
+        ----------
+        fig : Figure, optional
+            Existing figure to plot on. If None, a new figure will be created.
+
+        Yields
+        ------
+        Figure
+            The figure containing the heatmap visualization
+        """
+        # Get the case data
+        df = self.get_reported_cases()
+
+        # Convert to pandas for easier plotting
+        pdf = df.to_pandas()
+
+        # Create pivot table for heatmap
+        if self.params.aggregate_cases:
+            pivot_df = pdf.pivot(index="group_id", columns="tick", values="cases")
+        else:
+            pivot_df = pdf.pivot(index="node_id", columns="tick", values="cases")
+
+        # Create figure and axis if not provided
+        if fig is None:
+            fig, ax = plt.subplots(figsize=(12, 8))
+        else:
+            ax = fig.gca()
+
+        # Create heatmap with log scale
+        sns.heatmap(np.log1p(pivot_df), cmap="viridis", ax=ax, cbar_kws={"label": "log(cases + 1)"})
+
+        # Customize plot
+        ax.set_title("Log Cases Heatmap")
+        ax.set_xlabel("Time Step")
+        ax.set_ylabel("Location ID")
+
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45)
+
+        # Adjust layout to prevent label cutoff
+        plt.tight_layout()
+
+        yield fig

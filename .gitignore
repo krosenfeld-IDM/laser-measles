@@ -83,6 +83,9 @@ tmp/
 *.shx
 *.cpg
 
+# Rasters
+*.tif
+
 # Docs
 docs/reference/
 docs/api/

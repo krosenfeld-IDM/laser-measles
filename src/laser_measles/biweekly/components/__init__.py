@@ -1,10 +1,11 @@
+from .importation_pressure_process import ImportationPressureParams
+from .importation_pressure_process import ImportationPressureProcess
 from .infection import InfectionProcess
 from .vital_dynamics import VitalDynamicsProcess
-from .importation_pressure_process import ImportationPressureProcess, ImportationPressureParams
 
-__all__ = ["InfectionProcess", "VitalDynamicsProcess", "ImportationPressureProcess", "ImportationPressureParams"]
+__all__ = ["ImportationPressureParams", "ImportationPressureProcess", "InfectionProcess", "VitalDynamicsProcess"]
 
-from .state_tracker import StateTracker
 from .fadeout_tracker import FadeOutTracker
+from .state_tracker import StateTracker
 
-__all__.extend(["StateTracker", "FadeOutTracker"])
+__all__.extend(["FadeOutTracker", "StateTracker"])

@@ -33,10 +33,10 @@ class StateTracker(BaseComponent):
 
     def plot(self, fig: Figure = None):
         """
-        Plots the time series of state counts across all nodes.
+        Plots the time series of state counts across all nodes using subplots.
 
-        This function creates a line plot showing how the number of individuals in each state
-        changes over time. Each state is represented by a different colored line.
+        This function creates a separate subplot for each state, showing how the number of individuals
+        in each state changes over time. Each state gets its own subplot for better visibility.
 
         Parameters:
             fig (Figure, optional): A matplotlib Figure object. If None, a new figure will be created.
@@ -50,17 +50,23 @@ class StateTracker(BaseComponent):
             for _ in tracker.plot():
                 plt.show()
         """
-        fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
+        n_states = len(self.model.params.states)
+        fig = plt.figure(figsize=(12, 4 * n_states), dpi=128) if fig is None else fig
         fig.suptitle("State Counts Over Time")
 
         time = np.arange(self.model.params.nticks)
         for i, state in enumerate(self.model.params.states):
-            plt.plot(time, self.state_tracker[i], label=state)
+            ax = plt.subplot(n_states, 1, i + 1)
+            ax.plot(time, self.state_tracker[i], label=state)
+            ax.set_ylabel("Number of Individuals")
+            ax.grid(True)
+            ax.legend()
+            
+            # Only add xlabel to the bottom subplot
+            if i == n_states - 1:
+                ax.set_xlabel("Time")
 
-        plt.xlabel("Time")
-        plt.ylabel("Number of Individuals")
-        plt.legend()
-        plt.grid(True)
+        plt.tight_layout()
 
         # Check if the function is being used as a generator
         frame = inspect.currentframe()

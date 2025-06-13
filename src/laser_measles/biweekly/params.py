@@ -1,12 +1,9 @@
+from pydantic import BaseModel, Field
+import numpy as np
 import json
 from collections import OrderedDict
 
-import numpy as np
-from pydantic import BaseModel
-from pydantic import Field
-
-# Constants
-TIME_STEP_DAYS = 14  # Number of days per time step (biweekly)
+TIME_STEP_DAYS = 14
 STATES = ["S", "I", "R"]  # Compartments/states for discrete-time model
 
 class BiweeklyParams(BaseModel):

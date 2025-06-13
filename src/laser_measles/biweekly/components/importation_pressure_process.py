@@ -1,24 +1,63 @@
 import numpy as np
+from pydantic import BaseModel
+from pydantic import Field
 
 from laser_measles.biweekly.base import BaseComponent
+
 
 def cast_type(a, dtype):
     return a.astype(dtype) if a.dtype != dtype else a
 
 
+class ImportationPressureParams(BaseModel):
+    """Parameters specific to the importation pressure component."""
+
+    crude_importation_rate: float = Field(1, description="Yearly crude importation rate per 1k population", ge=0.0)
+    importation_start: int = Field(0, description="Start time for importation (in biweeks)", ge=0)
+    importation_end: int = Field(4, description="End time for importation (in biweeks)", ge=0)
+
+
 class ImportationPressureProcess(BaseComponent):
     """
     Component for simulating the importation pressure in the model.
+
+    This component handles the simulation of disease importation into the population.
+    It processes:
+    - Importation of cases based on crude importation rate
+    - Time-windowed importation (start/end times)
+    - Population updates: Moves individuals from susceptible to infected state
+
+    Parameters
+    ----------
+    model : object
+        The simulation model containing nodes, states, and parameters
+    verbose : bool, default=False
+        Whether to print verbose output during simulation
+    params : Optional[ImportationPressureParams], default=None
+        Component-specific parameters. If None, will use default parameters
+
+    Notes
+    -----
+    - Importation rates are calculated per biweek (26 periods per year)
+    - Importation is limited to the susceptible population
+    - All state counts are ensured to be non-negative
     """
 
-    def __init__(self, model, verbose: bool = False) -> None:
+    def __init__(self, model, verbose: bool = False, params: ImportationPressureParams | None = None) -> None:
         super().__init__(model, verbose)
-        self.crude_importation_rate = 1 # N per year per 1k
-        self.importation_start = 0
-        self.importation_end = 4 # bi weeks
+        self.params = params or ImportationPressureParams()
+        self._validate_params()
+
+    def _validate_params(self) -> None:
+        """Validate component parameters."""
+        if self.params.importation_end <= self.params.importation_start:
+            raise ValueError("importation_end must be greater than importation_start")
+
+        if self.params.crude_importation_rate < 0:
+            raise ValueError("crude_importation_rate must be non-negative")
 
     def __call__(self, model, tick: int) -> None:
-        if tick < self.importation_start or tick > self.importation_end:
+        if tick < self.params.importation_start or tick > self.params.importation_end:
             return
 
         # state counts
@@ -28,7 +67,7 @@ class ImportationPressureProcess(BaseComponent):
         population = states.sum(axis=0)
 
         # importation pressure
-        importation_pressure = population * (self.crude_importation_rate / 26.0 / 1000.0)
+        importation_pressure = population * (self.params.crude_importation_rate / 26.0 / 1000.0)
 
         # ensure importation pressure is not greater than the susceptible population
         importation_pressure = cast_type(importation_pressure, states.dtype)
@@ -36,4 +75,4 @@ class ImportationPressureProcess(BaseComponent):
 
         # update states
         states[0] -= importation_pressure
-        states[1] += importation_pressure
+        states[1] += importation_pressure  # Move to infected state

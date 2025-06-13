@@ -17,6 +17,14 @@ class CaseSurveillanceParams(BaseModel):
         lambda x: True,
         description="Function to filter which nodes to include in aggregation"
     )
+    aggregate_cases: bool = Field(
+        True,
+        description="Whether to aggregate cases by geographic level"
+    )
+    aggregation_level: int = Field(
+        3,
+        description="Number of levels to use for aggregation (e.g., 3 for country:state:lga)"
+    )
 
 
 class CaseSurveillanceTracker(BaseComponent):
@@ -25,8 +33,8 @@ class CaseSurveillanceTracker(BaseComponent):
 
     This component:
     1. Simulates case detection based on a detection rate
-    2. Tracks detected cases aggregated by LGA (or other geographic level)
-    3. Uses a filter function to determine which nodes to include in aggregation
+    2. Optionally tracks detected cases aggregated by geographic level
+    3. Uses a filter function to determine which nodes to include
 
     Parameters
     ----------
@@ -40,9 +48,8 @@ class CaseSurveillanceTracker(BaseComponent):
     Notes
     -----
     - Case detection is simulated using a binomial distribution
-    - Cases are aggregated by LGA by default (can be modified to aggregate by other levels)
-    - Only stores aggregated cases to save memory
-    - Uses a filter function to determine which nodes to include in aggregation
+    - Cases can be tracked at individual node level or aggregated by geographic level
+    - Uses a filter function to determine which nodes to include
     """
 
     def __init__(self, model, verbose: bool = False, params: CaseSurveillanceParams | None = None) -> None:
@@ -50,70 +57,102 @@ class CaseSurveillanceTracker(BaseComponent):
         self.params = params or CaseSurveillanceParams()
         self._validate_params()
         
-        # Extract LGA IDs and create mapping for filtered nodes
-        self.lga_mapping = {}
+        # Extract node IDs and create mapping for filtered nodes
+        self.node_mapping = {}
+        self.node_indices = []
+        
         for node_idx, node_id in enumerate(model.scenario['ids']):
             if self.params.filter_fn(node_id):
-                lga_id = ':'.join(node_id.split(':')[:3])  # country:state:lga
-                if lga_id not in self.lga_mapping:
-                    self.lga_mapping[lga_id] = []
-                self.lga_mapping[lga_id].append(node_idx)
+                if self.params.aggregate_cases:
+                    # Create geographic grouping key
+                    group_key = ':'.join(node_id.split(':')[:self.params.aggregation_level])
+                    if group_key not in self.node_mapping:
+                        self.node_mapping[group_key] = []
+                    self.node_mapping[group_key].append(node_idx)
+                else:
+                    self.node_indices.append(node_idx)
         
-        # Initialize reported cases tracker (nticks x num_lgas)
-        self.reported_cases = np.zeros(
-            (model.params.nticks, len(self.lga_mapping)),
-            dtype=model.nodes.states.dtype
-        )
-        
-        # Store LGA IDs in order
-        self.lga_ids = sorted(self.lga_mapping.keys())
+        # Initialize reported cases tracker
+        if self.params.aggregate_cases:
+            # For aggregated cases: nticks x num_groups
+            self.reported_cases = np.zeros(
+                (model.params.nticks, len(self.node_mapping)),
+                dtype=model.nodes.states.dtype
+            )
+            # Store group IDs in order
+            self.group_ids = sorted(self.node_mapping.keys())
+        else:
+            # For individual nodes: nticks x num_filtered_nodes
+            self.reported_cases = np.zeros(
+                (model.params.nticks, len(self.node_indices)),
+                dtype=model.nodes.states.dtype
+            )
 
     def _validate_params(self) -> None:
         """Validate component parameters."""
-        if not 0 <= self.params.detection_rate <= 1:
-            raise ValueError("detection_rate must be between 0 and 1")
+        if self.params.aggregation_level < 1:
+            raise ValueError("aggregation_level must be at least 1")
 
     def __call__(self, model, tick: int) -> None:
         # Get current infected cases
         infected = model.nodes.states[1]  # Infected state is index 1
         
-        # For each LGA, aggregate detected cases from its nodes
-        for lga_idx, (lga_id, node_indices) in enumerate(self.lga_mapping.items()):
-            # Get infected cases for this LGA's nodes
-            lga_infected = infected[node_indices]
-            
-            # Simulate case detection using binomial distribution
+        if self.params.aggregate_cases:
+            # For each group, aggregate detected cases from its nodes
+            for group_idx, (group_id, node_indices) in enumerate(self.node_mapping.items()):
+                # Get infected cases for this group's nodes
+                group_infected = infected[node_indices]
+                
+                # Simulate case detection using binomial distribution
+                detected_cases = cast_type(
+                    np.random.binomial(n=group_infected, p=self.params.detection_rate),
+                    model.nodes.states.dtype
+                )
+                
+                # Store total detected cases for this group
+                self.reported_cases[tick, group_idx] = detected_cases.sum()
+        else:
+            # For individual nodes
+            filtered_infected = infected[self.node_indices]
             detected_cases = cast_type(
-                np.random.binomial(n=lga_infected, p=self.params.detection_rate),
+                np.random.binomial(n=filtered_infected, p=self.params.detection_rate),
                 model.nodes.states.dtype
             )
-            
-            # Store total detected cases for this LGA
-            self.reported_cases[tick, lga_idx] = detected_cases.sum()
+            self.reported_cases[tick] = detected_cases
 
     def get_reported_cases(self) -> pl.DataFrame:
         """
-        Get a DataFrame of reported cases by LGA over time.
+        Get a DataFrame of reported cases over time.
         
         Returns
         -------
         pl.DataFrame
             DataFrame with columns:
             - tick: Time step
-            - lga_id: LGA identifier
+            - group_id: Group identifier (if aggregated) or node_id (if not aggregated)
             - cases: Number of reported cases
         """
         # Create a list to store the data
         data = []
         
-        # For each tick and LGA, add the reported cases
-        for tick in range(self.model.params.nticks):
-            for lga_idx, lga_id in enumerate(self.lga_ids):
-                data.append({
-                    'tick': tick,
-                    'lga_id': lga_id,
-                    'cases': self.reported_cases[tick, lga_idx]
-                })
+        if self.params.aggregate_cases:
+            # For each tick and group, add the reported cases
+            for tick in range(self.model.params.nticks):
+                for group_idx, group_id in enumerate(self.group_ids):
+                    data.append({
+                        'tick': tick,
+                        'group_id': group_id,
+                        'cases': self.reported_cases[tick, group_idx]
+                    })
+        else:
+            # For each tick and node, add the reported cases
+            for tick in range(self.model.params.nticks):
+                for node_idx, node_id in enumerate(self.node_indices):
+                    data.append({
+                        'tick': tick,
+                        'node_id': self.model.scenario['ids'][node_id],
+                        'cases': self.reported_cases[tick, node_idx]
+                    })
         
         # Create DataFrame
         return pl.DataFrame(data) 

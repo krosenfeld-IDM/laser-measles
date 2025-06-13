@@ -5,7 +5,8 @@ from .process_vital_dynamics import VitalDynamicsProcess
 
 __all__ = ["ImportationPressureParams", "ImportationPressureProcess", "InfectionProcess", "VitalDynamicsProcess"]
 
+from .tracker_case_surveillance import CaseSurveillanceTracker, CaseSurveillanceParams
 from .tracker_fadeout import FadeOutTracker
 from .tracker_state import StateTracker
 
-__all__.extend(["FadeOutTracker", "StateTracker"])
+__all__.extend(["CaseSurveillanceTracker", "CaseSurveillanceParams", "FadeOutTracker", "StateTracker"])

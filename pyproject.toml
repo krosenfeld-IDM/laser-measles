@@ -17,6 +17,7 @@ dependencies = [
   "sciris>=3.2.1",
   "polars>=1.30.0",
   "pyarrow>=20.0.0",
+  "rastertoolkit>=0.3.11",
 ]
 
 requires-python = ">= 3.10"

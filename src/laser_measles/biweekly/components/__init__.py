@@ -8,5 +8,6 @@ __all__ = ["ImportationPressureParams", "ImportationPressureProcess", "Infection
 from .tracker_case_surveillance import CaseSurveillanceTracker, CaseSurveillanceParams
 from .tracker_fadeout import FadeOutTracker
 from .tracker_state import StateTracker
+from .process_sia_calendar import SIACalendarProcess, SIACalendarParams
 
-__all__.extend(["CaseSurveillanceTracker", "CaseSurveillanceParams", "FadeOutTracker", "StateTracker"])
+__all__.extend(["CaseSurveillanceTracker", "CaseSurveillanceParams", "FadeOutTracker", "StateTracker", "SIACalendarProcess", "SIACalendarParams"])

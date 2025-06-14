@@ -32,6 +32,7 @@ Model Class:
 """
 
 from datetime import datetime
+from datetime import timedelta
 
 import alive_progress
 import click
@@ -169,6 +170,9 @@ class BiweeklyModel:
             delta = tfinish - tstart
             timing.append(delta.seconds * 1_000_000 + delta.microseconds)
         self.metrics.append(timing)
+        
+        # Update current date by time_step_days
+        self.current_date += timedelta(days=self.params.time_step_days)
 
     def run(self) -> None:
         """

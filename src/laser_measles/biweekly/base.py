@@ -15,7 +15,7 @@ class BaseComponent:
 
     def __call__(self, model, tick: int) -> None: ...
 
-    def plot(self, fig: Figure = None):
+    def plot(self, fig: Figure | None = None):
         """
         Placeholder for plotting method.
         """

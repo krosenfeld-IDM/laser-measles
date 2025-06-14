@@ -95,7 +95,7 @@ class BiweeklyModel:
         self.nodes = LaserFrame(num_nodes)
 
         # Initialize time tracking from parameters
-        self.start_time = datetime.strptime(self.params.start_time, "%Y-%m").replace(tzinfo=datetime.now().astimezone().tzinfo)
+        self.start_time = datetime.strptime(self.params.start_time, "%Y-%m") # noqa DTZ007
         self.current_date = self.start_time
 
         # create the state vector for each of the nodes (3, num_nodes)

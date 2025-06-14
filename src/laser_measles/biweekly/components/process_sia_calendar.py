@@ -21,7 +21,9 @@ class SIACalendarParams(BaseModel):
     sia_efficacy: float = Field(0.9, description="Fraction of susceptibles to vaccinate in SIA", ge=0.0, le=1.0)
     filter_fn: Callable[[str], bool] = Field(lambda x: True, description="Function to filter which nodes to include in aggregation")
     aggregation_level: int = Field(3, description="Number of levels to use for aggregation (e.g., 3 for country:state:lga)")
-    sia_schedule: pl.DataFrame = Field(description="DataFrame with columns 'group_key' and 'time' specifying SIA timing")
+    sia_schedule: pl.DataFrame = Field(description="DataFrame containing SIA schedule information")
+    date_column: str = Field("date", description="Name of the column containing SIA dates")
+    group_column: str = Field("id", description="Name of the column containing group identifiers")
 
 
 class SIACalendarProcess(BaseComponent):
@@ -82,7 +84,7 @@ class SIACalendarProcess(BaseComponent):
             raise ValueError("aggregation_level must be at least 1")
 
         # Validate SIA schedule DataFrame
-        required_columns = ["group_key", "time"]
+        required_columns = [self.params.group_column, self.params.date_column]
         if not all(col in self.params.sia_schedule.columns for col in required_columns):
             raise ValueError(f"sia_schedule must contain columns: {required_columns}")
 
@@ -92,12 +94,12 @@ class SIACalendarProcess(BaseComponent):
 
         # Check for SIAs scheduled for dates up to and including the current date
         current_date = model.current_date
-        sia_schedule = self.params.sia_schedule.filter(pl.col("time") <= current_date)
+        sia_schedule = self.params.sia_schedule.filter(pl.col(self.params.date_column) <= current_date)
 
         # Apply SIAs to each scheduled group
         for row in sia_schedule.iter_rows(named=True):
-            group_key = row["group_key"]
-            scheduled_date = row["time"]
+            group_key = row[self.params.group_column]
+            scheduled_date = row[self.params.date_column]
             
             # Create a unique identifier for this SIA
             sia_id = f"{group_key}_{scheduled_date}"
@@ -135,7 +137,7 @@ class SIACalendarProcess(BaseComponent):
         -------
         pl.DataFrame
             DataFrame with columns:
-            - group_key: Group identifier
-            - time: Scheduled date for SIA
+            - {group_column}: Group identifier
+            - {date_column}: Scheduled date for SIA
         """
         return self.params.sia_schedule

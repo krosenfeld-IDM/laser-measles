@@ -144,8 +144,8 @@ class Transmission:
                 forces,
                 population.etimer,
                 population.count,
-                model.params.exp_shape,
-                model.params.exp_scale,
+                model.params.exp_mu,
+                model.params.exp_sigma,
                 model.patches.incidence[tick, :],
                 population.doi,
                 tick,
@@ -191,7 +191,7 @@ class Transmission:
         cache=True,
     )
     def nb_transmission_update_exposed(
-        susceptibilities, nodeids, state, forces, etimers, count, exp_shape, exp_scale, incidence, doi, tick
+        susceptibilities, nodeids, state, forces, etimers, count, exp_mu, exp_sigma, incidence, doi, tick
     ):  # pragma: no cover
         """Numba compiled function to stochastically transmit infection to agents in parallel."""
         max_node_id = np.max(nodeids)
@@ -204,8 +204,8 @@ class Transmission:
                 force = susceptibility * forces[nodeid]  # force of infection attenuated by personal susceptibility
                 if (force > 0) and (np.random.random_sample() < force):  # draw random number < force means infection
                     susceptibilities[i] = 0  # no longer susceptible
-                    # set exposure timer for newly infected individuals to a draw from a gamma distribution, must be at least 1 day
-                    etimers[i] = np.maximum(np.uint16(1), np.uint16(np.round(np.random.gamma(exp_shape, exp_scale))))
+                    # set exposure timer for newly infected individuals to a draw from a lognormal distribution, must be at least 1 day
+                    etimers[i] = np.maximum(np.uint16(1), np.uint16(np.round(np.random.lognormal(exp_mu, exp_sigma))))
                     state[i] = 1  # set state to exposed
                     doi[i] = tick
                     thread_incidences[nb.get_thread_id(), nodeid] += 1

@@ -159,6 +159,7 @@ class Transmission:
                 population.itimer,
                 population.count,
                 model.params.inf_mean,
+                model.params.inf_shape,
                 model.patches.incidence[tick, :],
                 population.doi,
                 tick,
@@ -216,13 +217,13 @@ class Transmission:
 
     @staticmethod
     @nb.njit(
-        (nb.uint8[:], nb.uint16[:], nb.uint8[:], nb.float32[:], nb.uint16[:], nb.uint32, nb.float32, nb.uint32[:], nb.uint32[:], nb.int_),
+        (nb.uint8[:], nb.uint16[:], nb.uint8[:], nb.float32[:], nb.uint16[:], nb.uint32, nb.float32, nb.float32, nb.uint32[:], nb.uint32[:], nb.int_),
         parallel=True,
         nogil=True,
         cache=True,
     )
     def nb_transmission_update_noexposed(
-        susceptibilities, nodeids, state, forces, itimers, count, inf_mean, incidence, doi, tick
+        susceptibilities, nodeids, state, forces, itimers, count, inf_mean, inf_shape, incidence, doi, tick
     ):  # pragma: no cover
         """Numba compiled function to stochastically transmit infection to agents in parallel."""
         max_node_id = np.max(nodeids)
@@ -235,8 +236,9 @@ class Transmission:
                 force = susceptibility * forces[nodeid]  # force of infection attenuated by personal susceptibility
                 if (force > 0) and (np.random.random_sample() < force):  # draw random number < force means infection
                     susceptibilities[i] = 0  # no longer susceptible
-                    # set infectious timer for the individual to an exponential draw
-                    itimers[i] = np.maximum(np.uint16(1), np.uint16(np.ceil(np.random.exponential(inf_mean))))
+                    # set infectious timer for the individual to a gamma distribution draw
+                    scale = inf_mean / inf_shape
+                    itimers[i] = np.maximum(np.uint16(1), np.uint16(np.ceil(np.random.gamma(inf_shape, scale))))
                     doi[i] = tick
                     state[i] = 2
                     thread_incidences[nb.get_thread_id(), nodeid] += 1
@@ -402,10 +404,12 @@ class TransmissionSIR(Transmission):
         Transmission.nb_transmission_update_noexposed(
             population.susceptibility,
             population.nodeid,
+            population.state,
             forces,
             population.itimer,
             population.count,
             model.params.inf_mean,
+            model.params.inf_shape,
             model.patches.incidence[tick, :],
             population.doi,
             tick,

@@ -101,9 +101,9 @@ class Exposure:
         """
         flow = np.zeros(len(model.patches), dtype=np.uint32)
         Exposure.nb_exposure_update_test(model.population.count, model.population.etimer, model.population.itimer, model.population.state,
-                                    model.params.inf_mean, model.params.inf_sigma, flow, model.population.nodeid)
+                                    model.params.inf_mean, model.params.inf_shape, flow, model.population.nodeid)
         #Exposure.nb_exposure_update(model.population.count, model.population.etimer, model.population.itimer, model.population.state,
-        #                            model.params.inf_mean, model.params.inf_sigma)
+        #                            model.params.inf_mean, model.params.inf_shape)
         # Update the exposed count in the patches
         model.patches.exposed_test[tick+1, :] -= flow
         model.patches.cases_test[tick+1, :] += flow
@@ -112,7 +112,7 @@ class Exposure:
 
     @staticmethod
     @nb.njit((nb.uint32, nb.uint16[:], nb.uint16[:], nb.uint8[:], nb.float32, nb.float32), parallel=True, cache=True)
-    def nb_exposure_update(count, etimers, itimers, state, inf_mean, inf_sigma):  # pragma: no cover
+    def nb_exposure_update(count, etimers, itimers, state, inf_mean, inf_shape):  # pragma: no cover
         """Numba compiled function to check and update exposed timers for the population in parallel."""
         for i in nb.prange(count):
             etimer = etimers[i]
@@ -120,7 +120,8 @@ class Exposure:
                 etimer -= 1
                 #if we have decremented etimer from >0 to <=0, set infectious timer.
                 if etimer <= 0:
-                    itimers[i] = np.maximum(np.uint16(1), np.uint16(np.ceil(np.random.normal(inf_mean, inf_sigma))))
+                    scale = inf_mean / inf_shape
+                    itimers[i] = np.maximum(np.uint16(1), np.uint16(np.ceil(np.random.gamma(inf_shape, scale))))
                     state[i] = 2
                 etimers[i] = etimer
 
@@ -128,7 +129,7 @@ class Exposure:
 
     @staticmethod
     @nb.njit((nb.uint32, nb.uint16[:], nb.uint16[:], nb.uint8[:], nb.float32, nb.float32, nb.uint32[:], nb.uint16[:]), parallel=True, cache=True)
-    def nb_exposure_update_test(count, etimers, itimers, state, inf_mean, inf_sigma, flow, nodeid):  # pragma: no cover
+    def nb_exposure_update_test(count, etimers, itimers, state, inf_mean, inf_shape, flow, nodeid):  # pragma: no cover
         """Numba compiled function to check and update exposed timers for the population in parallel."""
         max_node_id = np.max(nodeid) + 1
         thread_flow = np.zeros((nb.config.NUMBA_DEFAULT_NUM_THREADS, max_node_id), dtype=np.uint32)
@@ -139,7 +140,8 @@ class Exposure:
                 etimer -= 1
                 # if we have decremented etimer from >0 to <=0, set infectious timer.
                 if etimer <= 0:
-                    itimers[i] = np.maximum(np.uint16(1), np.uint16(np.ceil(np.random.normal(inf_mean, inf_sigma))))
+                    scale = inf_mean / inf_shape
+                    itimers[i] = np.maximum(np.uint16(1), np.uint16(np.ceil(np.random.gamma(inf_shape, scale))))
                     thread_flow[nb.get_thread_id(), nodeid[i]] += 1
                     state[i] = 2
                 etimers[i] = etimer

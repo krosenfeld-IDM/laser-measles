@@ -46,8 +46,8 @@ from laser_measles import NonDiseaseDeaths
 from laser_measles import RoutineImmunization
 from laser_measles import Susceptibility
 from laser_measles import Transmission
-from laser_measles.generic import get_parameters
-from laser_measles.generic import get_scenario
+from laser_measles.washington import get_parameters
+from laser_measles.washington import get_scenario
 from laser_measles.utils import seed_infections_in_patch
 
 

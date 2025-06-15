@@ -55,7 +55,7 @@ def get_scenario(params, verbose: bool = False) -> pd.DataFrame:
     # names, populations, latitudes, longitudes = initialize_patches(verbose)
     if verbose:
         click.echo(f"Loading population and location data from '{params.shape_file}'…")
-    gpdf = shapefiles.get_dataframe(params.shape_file).to_pandas()
+    gpdf = shapefiles.get_shapefile_dataframe(params.shape_file).to_pandas()
     if verbose:
         click.echo(f"Loaded {len(gpdf):,} patches (total population {gpdf.population.sum():,}) from '{params.shape_file}'.")
 

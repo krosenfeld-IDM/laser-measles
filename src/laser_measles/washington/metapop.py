@@ -46,7 +46,7 @@ def get_scenario(params, verbose: bool = False) -> pd.DataFrame:
     pops = pd.read_csv(params.population_file)
     pops.rename(columns={"county": "name"}, inplace=True)
     pops.set_index("name", inplace=True)
-    gpdf = shapefiles.get_dataframe(params.shape_file).to_pandas()
+    gpdf = shapefiles.get_shapefile_dataframe(params.shape_file).to_pandas()
     gpdf.drop(
         columns=[
             "EDIT_DATE",

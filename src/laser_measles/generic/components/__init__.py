@@ -1,19 +1,19 @@
 __all__ = []
 
-from .births import Births, BirthsConstantPop
-__all__.extend(["Births", "BirthsConstantPop"])
+from .process_births import BirthsProcess, BirthsConstantPopProcess
+__all__.extend(["BirthsProcess", "BirthsConstantPopProcess"])
 
-from .exposure import Exposure
-__all__.extend(["Exposure"])
+from .process_exposure import ExposureProcess
+__all__.extend(["ExposureProcess"])
 
-from .infection import Infection, InfectionSIS
-__all__.extend(["Infection", "InfectionSIS"])
+from .process_infection import InfectionProcess, InfectionSISProcess
+__all__.extend(["InfectionProcess", "InfectionSISProcess"])
 
-from .susceptibility import Susceptibility
-__all__.extend(["Susceptibility"])
+from .process_susceptibility import SusceptibilityProcess
+__all__.extend(["SusceptibilityProcess"])
 
-from .transmission import Transmission, TransmissionSIR
-__all__.extend(["Transmission", "TransmissionSIR"])
+from .process_transmission import TransmissionProcess, TransmissionSIRProcess
+__all__.extend(["TransmissionProcess", "TransmissionSIRProcess"])
 
-from .importation import InfectRandomAgents, InfectAgentsInPatch
-__all__.extend(["InfectRandomAgents", "InfectAgentsInPatch"])
+from .process_importation import InfectRandomAgentsProcess, InfectAgentsInPatchProcess
+__all__.extend(["InfectRandomAgentsProcess", "InfectAgentsInPatchProcess"])

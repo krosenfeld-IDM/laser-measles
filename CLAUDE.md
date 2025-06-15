@@ -104,3 +104,7 @@ Built on `laser-core` with key dependencies: `pydantic`, `polars`, `sciris`, `di
 - Warnings treated as errors in test configuration
 - C extension coverage supported on Linux via tox
 - Test files follow `test_*.py` pattern in `tests/` directory
+
+## Development Memories
+- Skip ruff checks
+- Use "rg" (ripgrep) instead of "grep"

@@ -7,12 +7,12 @@ import os
 from scipy.optimize import fsolve
 
 from laser_measles.generic import Model
-from laser_measles.generic import Infection
-from laser_measles.generic import Exposure
-from laser_measles.generic import Susceptibility
-from laser_measles.generic import Transmission
-from laser_measles.generic import BirthsConstantPop
-from laser_measles.generic.components.importation import InfectAgentsInPatch
+from laser_measles.generic.components import InfectionProcess
+from laser_measles.generic.components import ExposureProcess
+from laser_measles.generic.components import SusceptibilityProcess
+from laser_measles.generic.components import TransmissionProcess
+from laser_measles.generic.components import BirthsConstantPopProcess
+from laser_measles.generic.components import InfectAgentsInPatchProcess
 
 from laser_measles.generic.utils import set_initial_susceptibility_in_patch
 from laser_measles.generic.utils import seed_infections_in_patch
@@ -22,7 +22,7 @@ from laser_measles.generic.utils import seed_infections_in_patch
 # Construct the synthetic populations. We'll have 61 patches with populations distributed logarithmicaly between 1k and 1M people.
 
 # %%
-nticks = 10 * 365 # lenth of the simulation in days
+nticks = 5 * 365 # lenth of the simulation in days
 npatches = 61 # number of patches (spatial units)
 pops = np.logspace(3, 6, npatches)
 scenario = pd.DataFrame({"ids": [str(i) for i in range(npatches)], "population": pops})
@@ -62,12 +62,12 @@ for R0, infmean, cbr in zip(R0_samples, infmean_samples, cbr_samples):
 
     model = Model(scenario, parameters)
     model.components = [
-        BirthsConstantPop,
-        Susceptibility,
-        Exposure,
-        Infection,
-        Transmission,
-        InfectAgentsInPatch,
+        BirthsConstantPopProcess,
+        SusceptibilityProcess,
+        ExposureProcess,
+        InfectionProcess,
+        TransmissionProcess,
+        InfectAgentsInPatchProcess,
     ]
 
     # Start them slightly asynchronously - different initial susceptibilities, infection only in 1 patch

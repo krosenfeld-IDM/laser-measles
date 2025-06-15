@@ -1,23 +1,23 @@
 __version__ = "0.0.0"
 
-from .components.births import Births
-from .components.births import BirthsConstantPop
+from .components.process_births import BirthsProcess
+from .components.process_births import BirthsConstantPopProcess
 from .core import compute
-from .components.importation import InfectRandomAgents
-from .components.infection import Infection
-from .components.exposure import Exposure
+from .components.process_importation import InfectRandomAgentsProcess
+from .components.process_infection import InfectionProcess
+from .components.process_exposure import ExposureProcess
 from .model import Model
-from .components.susceptibility import Susceptibility
-from .components.transmission import Transmission
+from .components.process_susceptibility import SusceptibilityProcess
+from .components.process_transmission import TransmissionProcess
 
 __all__ = [
-    "Births",
-    "BirthsConstantPop",
-    "InfectRandomAgents",
-    "Infection",
+    "BirthsProcess",
+    "BirthsConstantPopProcess",
+    "InfectRandomAgentsProcess",
+    "InfectionProcess",
     "Model",
-    "Susceptibility",
-    "Exposure",
-    "Transmission",
+    "SusceptibilityProcess",
+    "ExposureProcess",
+    "TransmissionProcess",
     "compute",
 ]

@@ -57,7 +57,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 from tqdm import tqdm
 
-from .components.births import Births, BirthsConstantPop
+from .components.process_births import BirthsProcess, BirthsConstantPopProcess
 
 
 class Model:
@@ -211,7 +211,7 @@ class Model:
             if "census" in dir(instance):
                 self.censuses.append(instance)
 
-        births = next(filter(lambda object: isinstance(object, (Births, BirthsConstantPop)), self.instances), None)
+        births = next(filter(lambda object: isinstance(object, (BirthsProcess, BirthsConstantPopProcess)), self.instances), None)
         # TODO: raise an exception if there are components with an on_birth function but no Births component
         for instance in self.instances:
             if births is not None and "on_birth" in dir(instance):

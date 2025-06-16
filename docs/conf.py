@@ -28,7 +28,7 @@ extensions = [
     "sphinx.ext.viewcode",  # Add a link to the Python source code for classes, functions etc.
     "sphinx.ext.napoleon",
     "sphinx.ext.autosectionlabel",
-    "sphinx.ext.doctest",  # Enable doctest builder
+    #"sphinx.ext.doctest",  # Enable doctest builder
     "sphinx_autodoc_typehints",  # Automatically document param types (less noise in class signature)
     "sphinx_design", # Add e.g. grid layout
     'sphinx_search.extension', # search across multiple docsets in domain

@@ -26,6 +26,7 @@ from laser_measles.biweekly.components import (
     VitalDynamicsProcess,
     StateTracker
 )
+from laser_measles.components import create_component
 
 print("All imports successful!")
 
@@ -166,16 +167,11 @@ infection_params = InfectionParams(
     season_start=13   # Peak transmission at week 26 (mid-year)
 )
 
-# Create components
-infection_component = InfectionProcess(model, verbose=True, params=infection_params)
-vital_dynamics_component = VitalDynamicsProcess(model, verbose=True)
-state_tracker = StateTracker(model, verbose=True)
-
-# Add components to model
+# Add components to model using create_component
 model.components = [
-    vital_dynamics_component,  # Process births/deaths first
-    infection_component,       # Then handle disease transmission
-    state_tracker             # Finally track the resulting states
+    create_component(VitalDynamicsProcess),  # Process births/deaths first
+    create_component(InfectionProcess, params=infection_params),  # Then handle disease transmission
+    create_component(StateTracker)  # Finally track the resulting states
 ]
 
 print(f"Added {len(model.components)} components to the model")
@@ -224,6 +220,16 @@ print(f"Total Population: {model.nodes.states.sum():,}")
 # of disease states and spatial distribution of the final epidemic.
 
 # %%
+# Get the state tracker instance from the model
+state_tracker = None
+for instance in model.instances:
+    if isinstance(instance, StateTracker):
+        state_tracker = instance
+        break
+
+if state_tracker is None:
+    raise RuntimeError("StateTracker not found in model instances")
+
 # Create comprehensive visualization
 fig = plt.figure(figsize=(15, 12))
 

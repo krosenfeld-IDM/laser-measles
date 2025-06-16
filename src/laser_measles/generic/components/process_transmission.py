@@ -145,6 +145,9 @@ class TransmissionProcess(BaseComponent):
         patches = model.patches
         population = model.population
 
+        patches.cases[tick,:] = np.bincount(population.nodeid[population.state == 2], 
+                                            minlength=patches.count).astype(patches.populations.dtype)
+
         contagion = patches.cases[tick, :]  # we will accumulate current infections into this view into the cases array
         # contagion = patches.cases_test[tick, :].copy().astype(np.float32)
         if hasattr(patches, "network"):

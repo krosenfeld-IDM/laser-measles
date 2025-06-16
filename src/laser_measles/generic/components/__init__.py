@@ -18,3 +18,6 @@ __all__.extend(["ImportationParams", "InfectRandomAgentsProcess", "InfectAgentsI
 
 from .tracker_state import StatesTracker
 __all__.extend(["StatesTracker"])
+
+from .tracker_population import PopulationTracker
+__all__.extend(["PopulationTracker"])

@@ -9,24 +9,7 @@ from .components.process_exposure import ExposureParams, ExposureProcess
 from .model import Model
 from .components.process_susceptibility import SusceptibilityParams, SusceptibilityProcess
 from .components.process_transmission import TransmissionParams, TransmissionProcess
-
-# Backward compatibility aliases
-Births = BirthsProcess
-BirthsConstantPop = BirthsConstantPopProcess
-Exposure = ExposureProcess
-Infection = InfectionProcess
-Susceptibility = SusceptibilityProcess
-Transmission = TransmissionProcess
-InfectRandomAgents = InfectRandomAgentsProcess
-from .params import (
-    SimulationParams,
-    BirthParams,
-    ExposureParams,
-    InfectionParams,
-    ImportationParams,
-    TransmissionParams,
-    GenericModelParams,
-)
+from .params import GenericParams
 
 __all__ = [
     # Process classes
@@ -44,18 +27,8 @@ __all__ = [
     "ImportationParams",
     "SusceptibilityParams", 
     "TransmissionParams",
-    # Backward compatibility aliases
-    "Births",
-    "BirthsConstantPop",
-    "Exposure", 
-    "Infection",
-    "Susceptibility",
-    "Transmission",
-    "InfectRandomAgents",
     # Other exports
     "Model",
     "compute",
-    "SimulationParams",
-    "BirthParams",
-    "GenericModelParams",
+    "GenericParams",
 ]

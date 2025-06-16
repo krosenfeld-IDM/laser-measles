@@ -85,10 +85,6 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
         num_nodes = len(scenario)
         self.nodes = LaserFrame(num_nodes)
 
-        # Initialize time tracking from parameters
-        self.start_time = datetime.strptime(self.params.start_time, "%Y-%m") # noqa DTZ007
-        self.current_date = self.start_time
-
         # create the state vector for each of the nodes (3, num_nodes)
         self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
 
@@ -113,15 +109,3 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
         """
         return
 
-    def _execute_tick(self, tick: int) -> None:
-        """
-        Execute a single tick with date tracking for biweekly model.
-        
-        Args:
-            tick: The current tick number
-        """
-        # Call parent implementation for timing
-        super()._execute_tick(tick)
-        
-        # Update current date by time_step_days
-        self.current_date += timedelta(days=self.params.time_step_days)

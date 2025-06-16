@@ -2,7 +2,7 @@
 Base classes for laser-measles components and models
 """
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Generic, TypeVar
 
 import alive_progress
@@ -81,6 +81,11 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         self.metrics: list = []
         self.tstart: datetime | None = None
         self.tfinish: datetime | None = None
+        
+        # Time tracking
+        self.start_time = datetime.strptime(self.params.start_time, "%Y-%m") # noqa DTZ007
+        self.current_date = self.start_time
+
     
     @property
     def components(self) -> list:
@@ -160,11 +165,14 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         timing = [tick]
         for phase in self.phases:
             tstart = datetime.now(tz=None)  # noqa: DTZ005
-            phase(self, tick)
+            phase(self, tick)            
             tfinish = datetime.now(tz=None)  # noqa: DTZ005
             delta = tfinish - tstart
             timing.append(delta.seconds * 1_000_000 + delta.microseconds)
         self.metrics.append(timing)
+
+        # Update current date by time_step_days
+        self.current_date += timedelta(days=self.params.time_step_days)
     
     def _print_timing_summary(self) -> None:
         """

@@ -19,6 +19,8 @@ from laser_measles.generic.params import GenericParams
 from laser_measles.generic.components import (
     BirthsConstantPopProcess, BirthsParams,
     TransmissionProcess, TransmissionParams,
+    StatesTracker,
+    PopulationTracker,
 )
 from laser_measles.generic.components.process_disease import DiseaseProcess, DiseaseParams
 from laser_measles.components import create_component
@@ -115,6 +117,8 @@ model.components = [
     create_component(BirthsConstantPopProcess, params=births_params),  # Births with constant population
     create_component(TransmissionProcess, params=transmission_params),      # Disease transmission
     create_component(DiseaseProcess, params=disease_params),          # Disease progression (E->I->R)
+    StatesTracker,
+    PopulationTracker,
 ]
 
 print("Components configured:")
@@ -127,8 +131,6 @@ for i, component in enumerate(model.components, 1):
 # Initialize population susceptibility and seed initial infections.
 
 # %%
-# Add susceptibility property to population
-model.population.add_scalar_property("susceptibility", dtype=np.uint8, default=1)
 
 # Set initial susceptibility based on herd immunity threshold
 # For measles with R0=12, herd immunity threshold ≈ 1-1/R0 ≈ 0.92
@@ -143,6 +145,7 @@ susceptible_indices = np.random.choice(
     size=n_susceptible, 
     replace=False
 )
+print(f"Initial susceptible population: {n_susceptible:,}")
 
 # # Initialize everyone as recovered (immune), then set some as susceptible
 # model.population.susceptibility[:] = 0  # 0 = immune/recovered
@@ -150,6 +153,7 @@ susceptible_indices = np.random.choice(
 
 # Add state property for disease states (S=0, E=1, I=2, R=3)
 # model.population.add_scalar_property("state", dtype=np.uint8, default=3)  # Start as recovered
+model.population.state[:] = 3 # Start as recovered
 model.population.state[susceptible_indices] = 0  # Set susceptible individuals to S
 
 print(f"Initial conditions:")
@@ -159,14 +163,13 @@ print(f"Initial population: {model.patches.populations.sum():,}")
 # Seed initial infections in the largest patch
 largest_patch_id = scenario['population'].idxmax()
 patch_population_mask = model.population.nodeid == largest_patch_id
-patch_susceptible_mask = (model.population.susceptibility == 1) & patch_population_mask
+patch_susceptible_mask = (model.population.state == 0) & patch_population_mask
 
 # Infect 10 individuals in the largest patch
 patch_susceptible_indices = np.where(patch_susceptible_mask)[0]
 if len(patch_susceptible_indices) >= 10:
     initial_infected_indices = np.random.choice(patch_susceptible_indices, size=10, replace=False)
     model.population.state[initial_infected_indices] = 2  # Set to infectious
-    model.population.susceptibility[initial_infected_indices] = 0  # No longer susceptible
     
     print(f"  Seeded 10 initial infections in {scenario.loc[largest_patch_id, 'name']}")
 
@@ -188,13 +191,21 @@ print(f"Final population: {model.patches.populations.sum():,}")
 # Create basic plots to examine the simulation results.
 
 # %%
+# Get the PopulationTracker and StateStracker instances
+for instance in model.instances:
+    if isinstance(instance, PopulationTracker):
+        population_tracker = instance
+    elif isinstance(instance, StatesTracker):
+        states_tracker = instance
+
+# %%
 # Plot population over time for each patch
-fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+fig, axes = plt.subplots(1, 2, figsize=(15, 5))
 
 # Population dynamics by patch
-ax1 = axes[0, 0]
+ax1 = axes[0]
 for i, patch_name in enumerate(scenario['name']):
-    ax1.plot(model.patches.populations[:, i], label=patch_name)
+    ax1.plot(population_tracker.population_tracker[i,:], label=patch_name)
 ax1.set_title('Population Over Time by Patch')
 ax1.set_xlabel('Days')
 ax1.set_ylabel('Population')
@@ -202,46 +213,13 @@ ax1.legend()
 ax1.grid(True, alpha=0.3)
 
 # Cases over time (if transmission component added case tracking)
-ax2 = axes[0, 1]
-if hasattr(model.patches, 'cases'):
-    total_cases = model.patches.cases.sum(axis=1)
-    ax2.plot(total_cases)
-    ax2.set_title('Total Cases Over Time')
-    ax2.set_xlabel('Days')
-    ax2.set_ylabel('Cases')
-    ax2.grid(True, alpha=0.3)
-else:
-    ax2.text(0.5, 0.5, 'Cases data not available', 
-             ha='center', va='center', transform=ax2.transAxes)
-    ax2.set_title('Cases Over Time')
-
-# Incidence over time (if available)
-ax3 = axes[1, 0]
-if hasattr(model.patches, 'incidence'):
-    total_incidence = model.patches.incidence.sum(axis=1)
-    ax3.plot(total_incidence)
-    ax3.set_title('Daily Incidence')
-    ax3.set_xlabel('Days')
-    ax3.set_ylabel('New Cases')
-    ax3.grid(True, alpha=0.3)
-else:
-    ax3.text(0.5, 0.5, 'Incidence data not available', 
-             ha='center', va='center', transform=ax3.transAxes)
-    ax3.set_title('Daily Incidence')
-
-# Patch populations final vs initial
-ax4 = axes[1, 1]
-initial_pop = model.patches.populations[0, :]
-final_pop = model.patches.populations[-1, :]
-ax4.bar(range(len(scenario)), initial_pop, alpha=0.6, label='Initial')
-ax4.bar(range(len(scenario)), final_pop, alpha=0.6, label='Final')
-ax4.set_title('Initial vs Final Population by Patch')
-ax4.set_xlabel('Patch Index')
-ax4.set_ylabel('Population')
-ax4.set_xticks(range(len(scenario)))
-ax4.set_xticklabels(scenario['name'], rotation=45)
-ax4.legend()
-ax4.grid(True, alpha=0.3)
+ax2 = axes[1]
+total_cases = states_tracker.state_tracker[2,:]
+ax2.plot(total_cases)
+ax2.set_title('Total Cases Over Time')
+ax2.set_xlabel('Days')
+ax2.set_ylabel('Cases')
+ax2.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.show()

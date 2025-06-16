@@ -31,11 +31,7 @@ Learn more
    usage
    tutorials
    api/index
-   installation
-   contributing
-   authors
-   changelog
-   reference/modules
+
 
 Indices and tables
 ==================

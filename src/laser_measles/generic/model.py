@@ -88,9 +88,7 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
         self.initialize_patches(scenario, parameters)
         self.initialize_population(scenario, parameters)
         # self.initialize_network(scenario, parameters)
-
-        self.components = [TransmissionProcess]
-
+        
         return
 
     def initialize_patches(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:

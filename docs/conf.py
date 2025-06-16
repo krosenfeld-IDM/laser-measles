@@ -33,6 +33,7 @@ extensions = [
     "sphinx_design", # Add e.g. grid layout
     'sphinx_search.extension', # search across multiple docsets in domain
     "nbsphinx",
+    "sphinxcontrib.autodoc_pydantic",
 ]
 
 # Use Google docstrings
@@ -57,6 +58,9 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints", 
 
 # Suppress certain warnings
 suppress_warnings = ['autosectionlabel.*']
+
+# Configure pydantic
+
 
 
 # -- Options for HTML output -------------------------------------------------

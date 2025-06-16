@@ -1,12 +1,12 @@
 """
 Raster patch generator for demographic data.
-You can use this to generate initial conditions for a laser-measles scenario.
+You can use this to generate initial conditions (e.g, population, MCV1 coverage) for a 
+laser-measles scenario.
 """
 
 import os
-from datetime import datetime
-from datetime import timezone
 from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 
 import alive_progress
@@ -24,7 +24,7 @@ from laser_measles.demographics import shapefiles
 from laser_measles.demographics.gadm import GADMShapefile
 
 
-class RasterPatchConfig(BaseModel):
+class RasterPatchParams(BaseModel):
     id: str = Field(..., description="Unique identifier for the scenario")
     region: str = Field(..., description="Country identifier (ISO3 code)")
     shapefile: str | Path = Field(..., description="Path to the shapefile")
@@ -41,7 +41,7 @@ class RasterPatchConfig(BaseModel):
 
 
 class RasterPatchGenerator:
-    def __init__(self, config: RasterPatchConfig, verbose: bool = True):
+    def __init__(self, config: RasterPatchParams, verbose: bool = True):
         self.config = config
         self.verbose = verbose
         self.population = None
@@ -114,6 +114,7 @@ class RasterPatchGenerator:
         return f"{self.config.id}" + ":" + key
 
     def generate_population(self) -> pl.DataFrame:
+        """Population, counts"""
         cache_key = self.get_cache_key("population")
 
         with cache.load_cache() as c:
@@ -204,7 +205,7 @@ if __name__ == "__main__":
     gadm.clear_cache()
     gadm.download()
     gadm.add_dotnames()
-    config = RasterPatchConfig(
+    config = RasterPatchParams(
         region="NGA",
         start_year=2000,
         end_year=2020,

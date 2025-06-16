@@ -176,5 +176,5 @@ Tools for handling raster data and patch generation:
    :template: custom-function-template.rst
    :nosignatures:
 
-   RasterPatchConfig
+   RasterPatchParams
    RasterPatchGenerator

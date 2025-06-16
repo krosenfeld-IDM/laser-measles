@@ -13,6 +13,9 @@ Functions:
 
     seed_infections_in_patch(model, ipatch: int, ninfections: int = 100) -> None:
         Seed initial infections in a specific location at the start of the simulation.
+
+    cast_type(a, dtype) -> Any:
+        Cast a value to a specified data type.
 """
 
 import click
@@ -137,3 +140,17 @@ def seed_infections_in_patch(model, ipatch: int, ninfections: int = 100) -> None
     model.population.itimer[ids[:min(ninfections, len(ids))]] = model.params.inf_mean
 
     return
+
+
+def cast_type(a, dtype):
+    """
+    Cast a value to a specified data type.
+
+    Args:
+        a: The value to cast
+        dtype: The target data type
+
+    Returns:
+        The value cast to the specified data type
+    """
+    return a.astype(dtype) if a.dtype != dtype else a

@@ -44,7 +44,6 @@ Model Class:
             Generates plots for the scenario patches and populations, distribution of day of birth, and update phase times.
 """
 
-from datetime import datetime
 
 import click
 import numpy as np
@@ -56,15 +55,16 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 from laser_measles.base import BaseLaserModel
-from .params import GenericParams
+from laser_measles.utils import cast_type
+
 from .components.process_births import BirthsProcess
 from .components.process_births_contant_pop import BirthsConstantPopProcess
+from .params import GenericParams
 
-def cast_type(a, dtype):
-    return a.astype(dtype) if a.dtype != dtype else a
+
 class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
     """
-    A class to represent a simulation model.
+    A class to represent the agent-based model.
     """
 
     def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "generic") -> None:
@@ -82,13 +82,13 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
             None
         """
         super().__init__(scenario, parameters, name)
-        
+
         click.echo(f"Initializing the {name} model with {len(scenario)} patches…")
 
         self.initialize_patches(scenario, parameters)
         self.initialize_population(scenario, parameters)
         # self.initialize_network(scenario, parameters)
-        
+
         return
 
     def initialize_patches(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
@@ -109,8 +109,8 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
         self.population = LaserFrame(capacity=int(capacity), initial_count=0)
         self.population.add_scalar_property("nodeid", dtype=np.uint16)
         self.population.add_scalar_property("state", dtype=np.uint8, default=0)
-        # self.patches.add_vector_property("exposed", length=self.params.nticks, dtype=np.uint32)  
-        # self.patches.add_vector_property("recovered", length=self.params.nticks, dtype=np.uint32) 
+        # self.patches.add_vector_property("exposed", length=self.params.nticks, dtype=np.uint32)
+        # self.patches.add_vector_property("recovered", length=self.params.nticks, dtype=np.uint32)
 
         for nodeid, count in enumerate(self.patches.populations):
             first, last = self.population.add(count)

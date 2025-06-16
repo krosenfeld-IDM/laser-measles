@@ -2,16 +2,16 @@
 
 __all__ = []
 from laser_measles.demographics import GADMShapefile  # noqa: F401
-from laser_measles.demographics import RasterPatchConfig  # noqa: F401
 from laser_measles.demographics import RasterPatchGenerator  # noqa: F401
+from laser_measles.demographics import RasterPatchParams  # noqa: F401
 from laser_measles.demographics import get_shapefile_dataframe  # noqa: F401
 from laser_measles.demographics import plot_shapefile_dataframe  # noqa: F401
 
 __all__.extend(
     [
         "GADMShapefile",
-        "RasterPatchConfig",
         "RasterPatchGenerator",
+        "RasterPatchParams",
         "get_shapefile_dataframe",
         "plot_shapefile_dataframe",
     ]

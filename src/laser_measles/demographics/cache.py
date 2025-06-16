@@ -10,7 +10,7 @@ def load_cache(cache_dir: str | None = None) -> diskcache.Cache:
     Load the cache for the application.
 
     Args:
-        cache_dir: The cache directory to use. If None, the default cache directory will be used.
+        cache_dir (str | None): The cache directory to use. If None, the default cache directory will be used.
 
     Returns:
         The cache object.

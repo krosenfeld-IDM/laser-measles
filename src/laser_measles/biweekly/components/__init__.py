@@ -6,7 +6,8 @@ from .process_infection import InfectionProcess
 from .process_infection import InfectionParams
 __all__.extend(["InfectionProcess", "InfectionParams"])
 from .process_vital_dynamics import VitalDynamicsProcess
-__all__.extend(["VitalDynamicsProcess"])
+from .process_vital_dynamics import VitalDynamicsParams
+__all__.extend(["VitalDynamicsProcess", "VitalDynamicsParams"])
 
 from .tracker_case_surveillance import CaseSurveillanceTracker, CaseSurveillanceParams
 from .tracker_fadeout import FadeOutTracker

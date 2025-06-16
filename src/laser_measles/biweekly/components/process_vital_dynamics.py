@@ -1,10 +1,23 @@
 import numpy as np
+from pydantic import BaseModel, Field
 
 from laser_measles.base import BaseComponent
+from laser_measles.utils import cast_type
 
 
-def cast_type(a, dtype):
-    return a.astype(dtype) if a.dtype != dtype else a
+class VitalDynamicsParams(BaseModel):
+    """Parameters specific to the vital dynamics process component."""
+    
+    crude_birth_rate: float = Field(
+        20.0,
+        description="Annual crude birth rate per 1000 population",
+        gt=0.0
+    )
+    crude_death_rate: float = Field(
+        8.0,
+        description="Annual crude death rate per 1000 population",
+        gt=0.0
+    )
 
 
 class VitalDynamicsProcess(BaseComponent):
@@ -23,6 +36,8 @@ class VitalDynamicsProcess(BaseComponent):
         The simulation model containing nodes, states, and parameters
     verbose : bool, default=False
         Whether to print verbose output during simulation
+    params : VitalDynamicsParams | None, default=None
+        Component-specific parameters. If None, will use default parameters
 
     Notes
     -----
@@ -32,24 +47,23 @@ class VitalDynamicsProcess(BaseComponent):
     - All state counts are ensured to be non-negative
     """
 
-    def __init__(self, model, verbose: bool = False) -> None:
+    def __init__(self, model, verbose: bool = False, params: VitalDynamicsParams | None = None) -> None:
         super().__init__(model, verbose)
+        if params is None:
+            params = VitalDynamicsParams()
+        self.params = params
 
     def __call__(self, model, tick: int) -> None:
         # state counts
         states = model.nodes.states
 
-        # model parameters
-        params = model.params
-
         # Vital dynamics
         population = states.sum(axis=0)
-        biweek_avg_births = population * (params.crude_birth_rate / 26.0 / 1000.0)
+        biweek_avg_births = population * (self.params.crude_birth_rate / 26.0 / 1000.0)
         vaccinated_births = cast_type(np.random.poisson(biweek_avg_births*np.array(model.scenario['mcv1'])), states.dtype)
         unvaccinated_births = cast_type(np.random.poisson(biweek_avg_births*(1-np.array(model.scenario['mcv1']))), states.dtype)
-        # births = cast_type(np.random.poisson(biweek_avg_births)*np.array(model.scenario['mcv1']), states.dtype)
 
-        biweek_avg_deaths = states * (params.crude_death_rate / 26.0 / 1000.0)
+        biweek_avg_deaths = states * (self.params.crude_death_rate / 26.0 / 1000.0)
         deaths = cast_type(np.random.poisson(biweek_avg_deaths), states.dtype)  # number of deaths
 
         states[0] += unvaccinated_births  # add births to S

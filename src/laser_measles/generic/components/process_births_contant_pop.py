@@ -8,10 +8,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from laser_measles.base import BaseComponent
-
-
-def cast_type(a, dtype):
-    return a.astype(dtype) if a.dtype != dtype else a
+from laser_measles.utils import cast_type
 
 
 class BirthsConstantPopParams(BaseModel):

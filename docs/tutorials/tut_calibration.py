@@ -1,4 +1,3 @@
-# %%
 import numpy as np
 import pandas as pd
 from laser_core.propertyset import PropertySet
@@ -7,36 +6,38 @@ import os
 from scipy.optimize import fsolve
 
 from laser_measles.generic import Model
-from laser_measles.generic.components import InfectionProcess
-from laser_measles.generic.components import ExposureProcess
-from laser_measles.generic.components import SusceptibilityProcess
-from laser_measles.generic.components import TransmissionProcess
-from laser_measles.generic.components import BirthsConstantPopProcess
-from laser_measles.generic.components import InfectAgentsInPatchProcess
+from laser_measles.generic.components import (
+    ExposureProcess, ExposureParams,
+    InfectionProcess, InfectionParams,
+    SusceptibilityProcess, SusceptibilityParams,
+    TransmissionProcess, TransmissionParams,
+    BirthsConstantPopProcess, BirthsParams,
+    InfectAgentsInPatchProcess, ImportationParams
+)
+from laser_measles.components import create_component
 
 from laser_measles.generic.utils import set_initial_susceptibility_in_patch
 from laser_measles.generic.utils import seed_infections_in_patch
 
+# %load_ext line_profiler
 
-# %% [markdown]
-# Construct the synthetic populations. We'll have 61 patches with populations distributed logarithmicaly between 1k and 1M people.
+f"{np.__version__=}"
 
 # %%
-nticks = 5 * 365 # lenth of the simulation in days
-npatches = 61 # number of patches (spatial units)
+# %%capture
+
+nticks = 3 * 365
+npatches = 61
 pops = np.logspace(3, 6, npatches)
-scenario = pd.DataFrame({"ids": [str(i) for i in range(npatches)], "population": pops})
+scenario = pd.DataFrame({"name": [str(i) for i in range(npatches)], "population": pops})
 
-# %% [markdown]
-# Run `nsims=200` iterations sampling over R0, mean infectious perios, and crude birth rate
-
-# %%
-nsims = 1 # 200
+# np.random.seed(5)  # Ensure reproducibility
+nsims = 1
 R0_samples = np.random.uniform(3, 16, nsims)
 infmean_samples = 5 + np.random.gamma(2, 10, nsims)
 cbr_samples = 10 + np.random.gamma(2, 20, nsims)
 i = 0
-outputs = np.zeros((nsims, nticks, npatches))
+outputs = np.zeros((nsims, nticks+1, npatches))
 # Create a folder to store the outputs
 output_folder = os.path.abspath(os.path.join(os.getcwd(), "CCS"))
 if not os.path.exists(output_folder):
@@ -49,9 +50,6 @@ for R0, infmean, cbr in zip(R0_samples, infmean_samples, cbr_samples):
             "verbose": True,
             "beta": R0 / infmean,
             "inf_mean": infmean,
-            "exp_mu": 2.5,
-            "exp_sigma":0.4,
-            "inf_shape": 2,
             "cbr": cbr,
             "importation_period": 180,
             "importation_end": 20 * 365,
@@ -61,13 +59,28 @@ for R0, infmean, cbr in zip(R0_samples, infmean_samples, cbr_samples):
     mu = (1 + parameters.cbr / 1000) ** (1 / 365) - 1
 
     model = Model(scenario, parameters)
+    # Create component parameters
+    births_params = BirthsParams(cbr=parameters.cbr, nticks=parameters.nticks)
+    susceptibility_params = SusceptibilityParams(nticks=parameters.nticks)
+    transmission_params = TransmissionParams(
+        beta=parameters.beta,
+        inf_mean=parameters.inf_mean,
+    )
+    infection_params = InfectionParams(nticks=parameters.nticks)
+    importation_params = ImportationParams(
+        nticks=parameters.nticks,
+        importation_period=parameters.importation_period,
+        importation_count=1,
+        importation_end=parameters.importation_end
+    )
+    
     model.components = [
-        BirthsConstantPopProcess,
-        SusceptibilityProcess,
+        create_component(BirthsConstantPopProcess, params=births_params),
+        create_component(SusceptibilityProcess, params=susceptibility_params),
+        create_component(TransmissionProcess, params=transmission_params),
+        create_component(InfectionProcess, params=infection_params),
         ExposureProcess,
-        InfectionProcess,
-        TransmissionProcess,
-        InfectAgentsInPatchProcess,
+        create_component(InfectAgentsInPatchProcess, params=importation_params),
     ]
 
     # Start them slightly asynchronously - different initial susceptibilities, infection only in 1 patch
@@ -76,35 +89,6 @@ for R0, infmean, cbr in zip(R0_samples, infmean_samples, cbr_samples):
         set_initial_susceptibility_in_patch(model, j, 1 / R0 + 0.1 / R0 * np.random.normal())
 
     model.run()
-    outputs[i, :, :] = model.patches.cases_test
+    outputs[i, :, :] = model.patches.test_cases
     np.save(f"{output_folder}/CCSSIRoutputs_{i}.npy", outputs[i, :, :])
     i += 1
-
-# %%
-print(model.population.susceptibility.min(), model.population.susceptibility.max())
-print(model.population.susceptibility.sum())
-
-
-# %%
-print(model.population.itimer.max(), model.population.itimer.min())
-print(np.sum(model.population.itimer > 0))
-
-# %%
-plt.plot(outputs.sum(axis=-1).flatten())
-
-# %%
-plt.plot(model.patches.cases_test.sum(axis=-1))
-
-# %%
-model.patches.cases.dtype
-
-# %%
-model.patches.cases_test.dtype
-
-# %%
-hasattr(model.population, "etimer")
-
-# %%
-
-
-

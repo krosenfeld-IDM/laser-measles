@@ -8,7 +8,7 @@ and visualization of the model's behavior over time.
 """
 import numpy as np
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 
 class FadeOutTracker(BaseComponent):

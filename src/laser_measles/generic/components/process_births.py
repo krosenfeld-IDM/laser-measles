@@ -33,9 +33,19 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
+from pydantic import BaseModel, Field
 
+from laser_measles.base import BaseComponent
 
-class BirthsProcess:
+def cast_type(a, dtype):
+    return a.astype(dtype) if a.dtype != dtype else a   
+
+class BirthsParams(BaseModel):
+    """Parameters specific to the births process component."""
+    
+    cbr: float = Field(default=20,description="Crude birth rate per 1000 people per year", gt=0.0)
+
+class BirthsProcess(BaseComponent):
     """
     A component to handle the birth events in a model.
 
@@ -47,7 +57,7 @@ class BirthsProcess:
         metrics (DataFrame): DataFrame to holding timing metrics for initializers.
     """
 
-    def __init__(self, model, verbose: bool = False):
+    def __init__(self, model, verbose: bool = False, params: BirthsParams = BirthsParams()):
         """
         Initialize the Births component.
 
@@ -55,6 +65,7 @@ class BirthsProcess:
 
             model (object): The model object which must have a `population` attribute.
             verbose (bool, optional): If True, enables verbose output. Defaults to False.
+            params (BirthsParams, optional): Component parameters. If None, uses model.params.
 
         Raises:
 
@@ -64,12 +75,13 @@ class BirthsProcess:
 
         assert getattr(model, "population", None) is not None, "Births requires the model to have a `population` attribute"
 
-        self.model = model
+        super().__init__(model, verbose)
 
-        nyears = (model.params.nticks + 364) // 365
+        self.params = params
+
+        nyears = (self.model.params.nticks  // 365) + 1
         model.patches.add_vector_property("births", length=nyears, dtype=np.int32)
         model.population.add_scalar_property("dob", dtype=np.int32)
-
         self._initializers = []
         self._metrics = []
 
@@ -135,7 +147,7 @@ class BirthsProcess:
         year = tick // 365
 
         if doy == 1:
-            model.patches.births[year, :] = model.prng.poisson(model.patches.populations[tick, :] * model.params.cbr / 1000)
+            model.patches.births[year, :] = model.prng.poisson(model.patches.populations[tick, :] * self.params.cbr / 1000)
 
         annual_births = model.patches.births[year, :]
         todays_births = (annual_births * doy // 365) - (
@@ -185,7 +197,7 @@ class BirthsProcess:
 
         indices = self.model.patches.populations[0, :].argsort()[-5:]
         ax1 = plt.gca()
-        ticks = list(range(0, self.model.params.nticks, 365))
+        ticks = list(range(0, self.params.nticks, 365))
         for index in indices:
             ax1.plot(self.model.patches.populations[ticks, index], marker="x", markersize=4)
 
@@ -210,7 +222,7 @@ class BirthsProcess:
         return
 
 
-class BirthsConstantPopProcess:
+class BirthsConstantPopProcess(BaseComponent):
     """
     A component to handle the birth events in a model with constant population - that is, births == deaths.
 
@@ -222,7 +234,7 @@ class BirthsConstantPopProcess:
         metrics (DataFrame): DataFrame to holding timing metrics for initializers.
     """
 
-    def __init__(self, model, verbose: bool = False):
+    def __init__(self, model, verbose: bool = False, params: BirthsParams = BirthsParams()):
         """
         Initialize the Births component.
 
@@ -230,6 +242,7 @@ class BirthsConstantPopProcess:
 
             model (object): The model object which must have a `population` attribute.
             verbose (bool, optional): If True, enables verbose output. Defaults to False.
+            params (BirthsParams, optional): Component parameters. If None, uses model.params.
 
         Raises:
 
@@ -239,20 +252,19 @@ class BirthsConstantPopProcess:
 
         assert getattr(model, "population", None) is not None, "Births requires the model to have a `population` attribute"
 
-        self.model = model
+        super().__init__(model, verbose)
+        self.params = params
 
         model.population.add_scalar_property("dob", dtype=np.int32)
         # Simple initializer for ages where birth rate = mortality rate:
-        daily_mortality_rate = (1 + model.params.cbr / 1000) ** (1 / 365) - 1
+        daily_mortality_rate = (1 + self.params.cbr / 1000) ** (1 / 365) - 1
         model.population.dob[0 : model.population.count] = -1 * model.prng.exponential(
             1 / daily_mortality_rate, model.population.count
         ).astype(np.int32)
 
-        # nyears = (model.params.nticks + 364) // 365
-        model.patches.add_vector_property("births", length=model.params.nticks, dtype=np.uint32)
-        mu = (1 + model.params.cbr / 1000) ** (1 / 365) - 1
-        model.patches.births = model.prng.poisson(lam=model.patches.populations[0, :] * mu, size=model.patches.births.shape)
-        # model.patches.births[year, :] = model.prng.poisson(model.patches.populations[tick, :] * model.params.cbr / 1000)
+        model.patches.add_vector_property("births", length=self.params.nticks, dtype=np.uint32)
+        mu = (1 + self.params.cbr / 1000) ** (1 / 365) - 1
+        model.patches.births = model.prng.poisson(lam=model.patches.populations * mu, size=model.patches.births.shape)
         self._initializers = []
         self._metrics = []
 
@@ -309,36 +321,43 @@ class BirthsConstantPopProcess:
         # random selection will be population proportional.  If node id is not contiguous, could be tricky?
         indices = model.prng.choice(model.patches.populations[tick, :].sum(), size=model.patches.births[tick, :].sum(), replace=False)
 
+        # Births, set date of birth and state to 0 (susceptible)
         if hasattr(model.population, "dob"):
             model.population.dob[indices] = tick  # set to current tick
         model.population.state[indices] = 0
 
-
-        model.patches.exposed_test[tick+1, :] -= np.bincount(
+        # Deaths
+        model.patches.populations -= cast_type(np.bincount(
             model.population.nodeid[indices],
-            weights=(model.population.etimer[indices] > 0),
-            minlength=model.patches.populations.shape[1]
-        ).astype(np.uint32)
+            weights = model.population.dob[indices] < tick,
+            minlength = len(model.patches.populations)
+        ), model.patches.populations.dtype)
 
-        model.patches.cases_test[tick+1, :] -= np.bincount(
-            model.population.nodeid[indices],
-            weights=(model.population.itimer[indices] > 0),
-            minlength=model.patches.populations.shape[1]
-        ).astype(np.uint32)
+        # model.patches.exposed_test[tick+1, :] -= np.bincount(
+        #     model.population.nodeid[indices],
+        #     weights=(model.population.etimer[indices] > 0),
+        #     minlength=model.patches.populations.shape[1]
+        # ).astype(np.uint32)
 
-        model.patches.recovered_test[tick+1, :] -= np.bincount(
-            model.population.nodeid[indices],
-            weights=((model.population.etimer[indices]==0 ) &
-                     (model.population.itimer[indices]==0) &
-                     (model.population.susceptibility[indices] == 0)),
-            minlength=model.patches.populations.shape[1]
-        ).astype(np.uint32)
+        # model.patches.cases_test[tick+1, :] -= np.bincount(
+        #     model.population.nodeid[indices],
+        #     weights=(model.population.itimer[indices] > 0),
+        #     minlength=model.patches.populations.shape[1]
+        # ).astype(np.uint32)
 
-        model.patches.susceptibility_test[tick+1, :] += np.bincount(
-            model.population.nodeid[indices],
-            weights=(model.population.susceptibility[indices] == 0),
-            minlength=model.patches.populations.shape[1]
-        ).astype(np.uint32)
+        # model.patches.recovered_test[tick+1, :] -= np.bincount(
+        #     model.population.nodeid[indices],
+        #     weights=((model.population.etimer[indices]==0 ) &
+        #              (model.population.itimer[indices]==0) &
+        #              (model.population.susceptibility[indices] == 0)),
+        #     minlength=model.patches.populations.shape[1]
+        # ).astype(np.uint32)
+
+        # model.patches.susceptibility_test[tick+1, :] += np.bincount(
+        #     model.population.nodeid[indices],
+        #     weights=(model.population.susceptibility[indices] == 0),
+        #     minlength=model.patches.populations.shape[1]
+        # ).astype(np.uint32)
 
         timing = [tick]
         for initializer in self._initializers:
@@ -369,7 +388,7 @@ class BirthsConstantPopProcess:
 
         indices = self.model.patches.populations[0, :].argsort()[-5:]
         ax1 = plt.gca()
-        ticks = list(range(0, self.model.params.nticks, 365))
+        ticks = list(range(0, self.params.nticks, 365))
         for index in indices:
             ax1.plot(self.model.patches.populations[ticks, index], marker="x", markersize=4)
 

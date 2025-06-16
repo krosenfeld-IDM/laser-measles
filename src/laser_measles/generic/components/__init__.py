@@ -1,19 +1,26 @@
 __all__ = []
 
-from .process_births import BirthsProcess, BirthsConstantPopProcess
-__all__.extend(["BirthsProcess", "BirthsConstantPopProcess"])
+# Import parameter classes
+from .process_births import BirthsParams, BirthsProcess
+__all__.extend(["BirthsParams", "BirthsProcess"])
 
-from .process_exposure import ExposureProcess
-__all__.extend(["ExposureProcess"])
+from .process_births_contant_pop import BirthsConstantPopParams, BirthsConstantPopProcess
+__all__.extend(["BirthsConstantPopParams", "BirthsConstantPopProcess"])
 
-from .process_infection import InfectionProcess, InfectionSISProcess
-__all__.extend(["InfectionProcess", "InfectionSISProcess"])
+from .process_exposure import ExposureParams, ExposureProcess
+__all__.extend(["ExposureParams", "ExposureProcess"])
 
-from .process_susceptibility import SusceptibilityProcess
-__all__.extend(["SusceptibilityProcess"])
+from .process_infection import InfectionParams, InfectionProcess
+__all__.extend(["InfectionParams", "InfectionProcess"])
 
-from .process_transmission import TransmissionProcess, TransmissionSIRProcess
-__all__.extend(["TransmissionProcess", "TransmissionSIRProcess"])
+from .process_disease import DiseaseParams, DiseaseProcess
+__all__.extend(["DiseaseParams", "DiseaseProcess"])
 
-from .process_importation import InfectRandomAgentsProcess, InfectAgentsInPatchProcess
-__all__.extend(["InfectRandomAgentsProcess", "InfectAgentsInPatchProcess"])
+from .process_susceptibility import SusceptibilityParams, SusceptibilityProcess
+__all__.extend(["SusceptibilityParams", "SusceptibilityProcess"])
+
+from .process_transmission import TransmissionParams, TransmissionProcess
+__all__.extend(["TransmissionParams", "TransmissionProcess"])
+
+from .process_importation import ImportationParams, InfectRandomAgentsProcess, InfectAgentsInPatchProcess
+__all__.extend(["ImportationParams", "InfectRandomAgentsProcess", "InfectAgentsInPatchProcess"])

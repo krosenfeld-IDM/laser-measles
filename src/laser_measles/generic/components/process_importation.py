@@ -17,8 +17,21 @@ Functions:
 
 import numpy as np
 from matplotlib.figure import Figure
+from pydantic import BaseModel, Field
+from typing import Optional
 
 from ..utils import seed_infections_in_patch, seed_infections_randomly
+
+
+class ImportationParams(BaseModel):
+    """Parameters specific to the importation process components."""
+    
+    nticks: int = Field(description="Total number of simulation ticks", gt=0)
+    importation_period: int = Field(description="Period between importation events", gt=0)
+    importation_count: int = Field(description="Number of agents to import per event", gt=0)
+    importation_start: Optional[int] = Field(default=0, description="Start tick for importations", ge=0)
+    importation_end: Optional[int] = Field(default=None, description="End tick for importations")
+    importation_patchlist: Optional[list] = Field(default=None, description="List of patches to import into")
 
 
 class InfectRandomAgentsProcess:
@@ -26,7 +39,7 @@ class InfectRandomAgentsProcess:
     A component to update the infection timers of a population in a model.
     """
 
-    def __init__(self, model, verbose: bool = False) -> None:
+    def __init__(self, model, verbose: bool = False, params: ImportationParams | None = None) -> None:
         """
         Initialize an Infect_Random_Agents instance.
 
@@ -47,14 +60,21 @@ class InfectRandomAgentsProcess:
         """
 
         self.model = model
-        self.period = model.params.importation_period
-        self.count = model.params.importation_count
-        self.start = 0
-        self.end = model.params.nticks
-        if hasattr(model.params, "importation_start"):
-            self.start = model.params.importation_start
-        if hasattr(model.params, "importation_end"):
-            self.end = model.params.importation_end
+        if params is None:
+            # Use model.params for backward compatibility
+            params = ImportationParams(
+                nticks=model.params.nticks,
+                importation_period=model.params.importation_period,
+                importation_count=model.params.importation_count,
+                importation_start=getattr(model.params, "importation_start", 0),
+                importation_end=getattr(model.params, "importation_end", None)
+            )
+        self.params = params
+        
+        self.period = self.params.importation_period
+        self.count = self.params.importation_count
+        self.start = self.params.importation_start or 0
+        self.end = self.params.importation_end or self.params.nticks
 
         return
 
@@ -94,7 +114,7 @@ class InfectAgentsInPatchProcess:
     A component to update the infection timers of a population in a model.
     """
 
-    def __init__(self, model, verbose: bool = False) -> None:
+    def __init__(self, model, verbose: bool = False, params: ImportationParams | None = None) -> None:
         """
         Initialize an Infect_Random_Agents instance.
 
@@ -115,14 +135,23 @@ class InfectAgentsInPatchProcess:
         """
 
         self.model = model
-        self.period = model.params.importation_period
-
-        self.count = model.params.importation_count if hasattr(model.params, "importation_count") else 1
-        self.patchlist = (
-            model.params.importation_patchlist if hasattr(model.params, "importation_patchlist") else np.arange(model.patches.count)
-        )
-        self.start = model.params.importation_start if hasattr(model.params, "importation_start") else 0
-        self.end = model.params.importation_end if hasattr(model.params, "importation_end") else model.params.nticks
+        if params is None:
+            # Use model.params for backward compatibility
+            params = ImportationParams(
+                nticks=model.params.nticks,
+                importation_period=model.params.importation_period,
+                importation_count=getattr(model.params, "importation_count", 1),
+                importation_start=getattr(model.params, "importation_start", 0),
+                importation_end=getattr(model.params, "importation_end", None),
+                importation_patchlist=getattr(model.params, "importation_patchlist", None)
+            )
+        self.params = params
+        
+        self.period = self.params.importation_period
+        self.count = self.params.importation_count or 1
+        self.patchlist = self.params.importation_patchlist or np.arange(model.patches.count)
+        self.start = self.params.importation_start or 0
+        self.end = self.params.importation_end or self.params.nticks
 
         return
 

@@ -21,6 +21,13 @@ Functions:
 import numba as nb
 import numpy as np
 from matplotlib.figure import Figure
+from pydantic import BaseModel, Field
+
+
+class SusceptibilityParams(BaseModel):
+    """Parameters specific to the susceptibility process component."""
+    
+    nticks: int = Field(description="Total number of simulation ticks", gt=0)
 
 
 class SusceptibilityProcess:
@@ -28,7 +35,7 @@ class SusceptibilityProcess:
     A component to represent the susceptibility of a population in a model.
     """
 
-    def __init__(self, model, verbose: bool = False):
+    def __init__(self, model, verbose: bool = False, params: SusceptibilityParams | None = None):
         """
         Initialize the susceptibility component of the model.
 
@@ -54,9 +61,13 @@ class SusceptibilityProcess:
         """
 
         self.model = model
+        if params is None:
+            # Use model.params for backward compatibility
+            params = SusceptibilityParams(nticks=model.params.nticks)
+        self.params = params
 
         model.population.add_scalar_property("susceptibility", dtype=np.uint8, default=1)
-        model.patches.add_vector_property("susceptibility", model.params.nticks, dtype=np.uint32)
+        model.patches.add_vector_property("susceptibility", self.params.nticks, dtype=np.uint32)
         # self.nb_initialize_susceptibility(model.population.count, model.population.dob, model.population.susceptibility)
 
         return

@@ -3,23 +3,7 @@ Basic classes
 """
 import numpy as np
 import polars as pl
-from matplotlib.figure import Figure
 from pydantic import BaseModel
-
-
-class BaseComponent:
-    def __init__(self, model, verbose: bool = False) -> None:
-        self.model = model
-        self.verbose = verbose
-        self.initialized = True
-
-    def __call__(self, model, tick: int) -> None: ...
-
-    def plot(self, fig: Figure | None = None):
-        """
-        Placeholder for plotting method.
-        """
-        yield None
 
 
 class BaseScenarioSchema(BaseModel):

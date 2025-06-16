@@ -6,7 +6,7 @@ import polars as pl
 from pydantic import BaseModel
 from pydantic import Field
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 
 def cast_type(a, dtype):

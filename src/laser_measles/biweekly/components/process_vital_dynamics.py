@@ -1,6 +1,6 @@
 import numpy as np
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 
 def cast_type(a, dtype):

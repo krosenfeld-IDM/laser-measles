@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from pydantic import BaseModel, Field
 from typing import Callable
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 
 def cast_type(a, dtype):

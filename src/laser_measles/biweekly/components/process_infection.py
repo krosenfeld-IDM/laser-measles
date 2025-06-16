@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, Field
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 
 def cast_type(a, dtype):
@@ -14,7 +14,6 @@ class InfectionParams(BaseModel):
     beta: float = Field(32, description="Base transmission rate", gt=0.0)
     seasonality: float = Field(0.06, description="Seasonality factor", ge=0.0, le=1.0)
     season_start: int = Field(0, description="Season start tick (0-25)", ge=0, le=25)
-    recovery_period_days: int = Field(14, description="Recovery period in days", gt=0)
 
 
 class InfectionProcess(BaseComponent):

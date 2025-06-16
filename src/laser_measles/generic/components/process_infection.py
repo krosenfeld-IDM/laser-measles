@@ -29,6 +29,13 @@ import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
+from pydantic import BaseModel, Field
+
+
+class InfectionParams(BaseModel):
+    """Parameters specific to the infection process component."""
+    
+    nticks: int = Field(description="Total number of simulation ticks", gt=0)
 
 
 class InfectionProcess:
@@ -36,7 +43,7 @@ class InfectionProcess:
     A component to update the infection timers of a population in a model.
     """
 
-    def __init__(self, model, verbose: bool = False) -> None:
+    def __init__(self, model, verbose: bool = False, params: InfectionParams | None = None) -> None:
         """
         Initialize an Infection instance.
 
@@ -56,9 +63,13 @@ class InfectionProcess:
         """
 
         self.model = model
+        if params is None:
+            # Use model.params for backward compatibility
+            params = InfectionParams(nticks=model.params.nticks)
+        self.params = params
 
         model.population.add_scalar_property("itimer", dtype=np.uint16, default=0)
-        model.patches.add_vector_property("recovered", length=model.params.nticks, dtype=np.uint32)
+        model.patches.add_vector_property("recovered", length=self.params.nticks, dtype=np.uint32)
         InfectionProcess.nb_set_itimers_slice(0, model.population.count, model.population.itimer, 0)
 
         return
@@ -220,7 +231,7 @@ class InfectionProcess:
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Infections By Age")
 
-        ages_in_years = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
+        ages_in_years = (self.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
         age_counts = np.bincount(ages_in_years)
         plt.bar(range(len(age_counts)), age_counts)
         itimers = self.model.population.itimer[0 : self.model.population.count]
@@ -343,7 +354,7 @@ class InfectionSISProcess:
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Infections By Age")
 
-        ages_in_years = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
+        ages_in_years = (self.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
         age_counts = np.bincount(ages_in_years)
         plt.bar(range(len(age_counts)), age_counts)
         itimers = self.model.population.itimer[0 : self.model.population.count]

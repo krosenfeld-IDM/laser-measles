@@ -12,11 +12,14 @@ import os
 from scipy.optimize import fsolve
 
 from laser_measles.generic import Model
-from laser_measles.generic import Infection
-from laser_measles.generic import Susceptibility
-from laser_measles.generic import Transmission
-from laser_measles.generic import BirthsConstantPop
-from laser_measles.generic.components.importation import InfectAgentsInPatch
+from laser_measles.generic.components import (
+    InfectionProcess, InfectionParams,
+    SusceptibilityProcess, SusceptibilityParams,
+    TransmissionProcess, TransmissionParams,
+    BirthsConstantPopProcess, BirthsParams,
+    InfectAgentsInPatchProcess, ImportationParams
+)
+from laser_measles.components import create_component
 
 from laser_measles.generic.utils import set_initial_susceptibility_in_patch
 from laser_measles.generic.utils import seed_infections_in_patch
@@ -55,18 +58,40 @@ for R0, infmean, cbr in zip(R0_samples, infmean_samples, cbr_samples):
             "cbr": cbr,
             "importation_period": 180,
             "importation_end": 20 * 365,
+            "exp_mu": np.log(8),  # exposure parameters for SEIR model
+            "exp_sigma": 0.5,
+            "inf_shape": 1.0,  # shape parameter for gamma distribution
         }
     )
 
     mu = (1 + parameters.cbr / 1000) ** (1 / 365) - 1
 
     model = Model(scenario, parameters)
+    # Create component parameters
+    births_params = BirthsParams(cbr=parameters.cbr, nticks=parameters.nticks)
+    susceptibility_params = SusceptibilityParams(nticks=parameters.nticks)
+    transmission_params = TransmissionParams(
+        nticks=parameters.nticks,
+        beta=parameters.beta,
+        exp_mu=parameters.exp_mu,
+        exp_sigma=parameters.exp_sigma,
+        inf_mean=parameters.inf_mean,
+        inf_shape=parameters.inf_shape
+    )
+    infection_params = InfectionParams(nticks=parameters.nticks)
+    importation_params = ImportationParams(
+        nticks=parameters.nticks,
+        importation_period=parameters.importation_period,
+        importation_count=1,
+        importation_end=parameters.importation_end
+    )
+    
     model.components = [
-        BirthsConstantPop,
-        Susceptibility,
-        Transmission,
-        Infection,
-        InfectAgentsInPatch,
+        create_component(BirthsConstantPopProcess, params=births_params),
+        create_component(SusceptibilityProcess, params=susceptibility_params),
+        create_component(TransmissionProcess, params=transmission_params),
+        create_component(InfectionProcess, params=infection_params),
+        create_component(InfectAgentsInPatchProcess, params=importation_params),
     ]
 
     # Start them slightly asynchronously - different initial susceptibilities, infection only in 1 patch

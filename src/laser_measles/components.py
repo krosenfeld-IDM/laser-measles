@@ -8,7 +8,7 @@ The main feature is a decorator that makes it easier to create components with p
 from functools import wraps
 from typing import Any, Callable, Type, TypeVar
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 T = TypeVar('T', bound=BaseComponent)
 

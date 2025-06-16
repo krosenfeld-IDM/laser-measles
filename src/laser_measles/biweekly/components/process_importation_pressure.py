@@ -2,7 +2,7 @@ import numpy as np
 from pydantic import BaseModel
 from pydantic import Field
 
-from laser_measles.biweekly.base import BaseComponent
+from laser_measles.base import BaseComponent
 
 
 def cast_type(a, dtype):

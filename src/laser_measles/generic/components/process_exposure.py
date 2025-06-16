@@ -28,6 +28,20 @@ import numba as nb
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
+from pydantic import BaseModel, Field
+
+class ExposureParams(BaseModel):
+    """Parameters specific to the exposure process component."""
+    
+    nticks: int = Field(description="Total number of simulation ticks", gt=0)
+    inf_mean: float = Field(default=8.0, description="Mean infection duration", gt=0.0)
+    inf_std: float = Field(default=2.0, description="Standard deviation for infection duration", gt=0.0)
+
+    def model_post_init(self, __context) -> None:
+        """Set inf_shape and inf_scale attributes after initialization."""
+        self.inf_shape = (self.inf_mean / self.inf_std) ** 2
+        self.inf_scale = self.inf_std ** 2 / self.inf_mean
+
 
 
 class ExposureProcess:
@@ -35,7 +49,7 @@ class ExposureProcess:
     A class to define the exposed state of individuals in a population.
     """
 
-    def __init__(self, model, verbose: bool = False) -> None:
+    def __init__(self, model, verbose: bool = False, params: ExposureParams | None = None) -> None:
         """
         Initialize an Exposed instance.
 
@@ -55,9 +69,13 @@ class ExposureProcess:
         """
 
         self.model = model
+        if params is None:
+            # Use model.params for backward compatibility
+            params = ExposureParams(nticks=model.params.nticks, inf_mean=model.params.inf_mean, inf_shape=model.params.inf_shape)
+        self.params = params
 
         model.population.add_scalar_property("etimer", dtype=np.uint16, default=0)
-        model.patches.add_vector_property("exposed", length=model.params.nticks, dtype=np.uint32)
+        model.patches.add_vector_property("exposed", length=self.params.nticks, dtype=np.uint32)
         ExposureProcess.nb_set_etimers_slice(0, model.population.count, model.population.etimer, nb.uint16(0))
 
         return
@@ -101,7 +119,7 @@ class ExposureProcess:
         """
         flow = np.zeros(len(model.patches), dtype=np.uint32)
         ExposureProcess.nb_exposure_update_test(model.population.count, model.population.etimer, model.population.itimer, model.population.state,
-                                    model.params.inf_mean, model.params.inf_shape, flow, model.population.nodeid)
+                                    self.params.inf_mean, self.params.inf_shape, flow, model.population.nodeid)
         #Exposure.nb_exposure_update(model.population.count, model.population.etimer, model.population.itimer, model.population.state,
         #                            model.params.inf_mean, model.params.inf_shape)
         # Update the exposed count in the patches
@@ -228,7 +246,7 @@ class ExposureProcess:
         fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
         fig.suptitle("Exposed By Age")
 
-        ages_in_years = (self.model.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
+        ages_in_years = (self.params.nticks - self.model.population.dob[0 : self.model.population.count]) // 365
         age_counts = np.bincount(ages_in_years)
         plt.bar(range(len(age_counts)), age_counts)
         etimers = self.model.population.etimer[0 : self.model.population.count]

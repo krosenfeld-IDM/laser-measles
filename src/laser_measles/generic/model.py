@@ -55,11 +55,13 @@ from laser_core.random import seed as seed_prng
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
-from tqdm import tqdm
+import alive_progress
 
 from .components.process_births import BirthsProcess, BirthsConstantPopProcess
+from .components.process_transmission import TransmissionProcess
 
-
+def cast_type(a, dtype):
+    return a.astype(dtype) if a.dtype != dtype else a
 class Model:
     """
     A class to represent a simulation model.
@@ -94,6 +96,8 @@ class Model:
         self.initialize_population(scenario, parameters)
         # self.initialize_network(scenario, parameters)
 
+        self.components = [TransmissionProcess]
+
         return
 
     def initialize_patches(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
@@ -103,71 +107,27 @@ class Model:
 
         # "activate" all the patches (count == capacity)
         self.patches.add(npatches)
-        self.patches.add_vector_property("populations", length=parameters.nticks + 1)
-        self.patches.add_vector_property("cases_test", length=parameters.nticks+1, dtype=np.uint32)
-        self.patches.add_vector_property("exposed_test", length=parameters.nticks+1, dtype=np.uint32)
-        self.patches.add_vector_property("recovered_test", length=parameters.nticks+1, dtype=np.uint32)
-        self.patches.add_vector_property("susceptibility_test", length=parameters.nticks+1, dtype=np.uint32)
+        self.patches.add_scalar_property("populations", dtype=np.uint32, default=0)
         # set patch populations at t = 0 to initial populations
-        self.patches.populations[0, :] = scenario.population
+        self.patches.populations[:] = cast_type(scenario.population, np.uint32)
 
         return
 
     def initialize_population(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
-        # Initialize the model population
-        # Is there a better pattern than checking for cbr in parameters?  Many modelers might use "mu", for example.
-        # Would rather check E.g., if there is a birth component, but that might come later.
-        # if "cbr" in parameters:
-        #    capacity = calc_capacity(self.patches.populations[0, :].sum(), parameters.nticks, parameters.cbr, parameters.verbose)
-        # else:
-        capacity = np.sum(self.patches.populations[0, :])
+        capacity = np.sum(self.patches.populations)
         self.population = LaserFrame(capacity=int(capacity), initial_count=0)
-
         self.population.add_scalar_property("nodeid", dtype=np.uint16)
         self.population.add_scalar_property("state", dtype=np.uint8, default=0)
-        for nodeid, count in enumerate(self.patches.populations[0, :]):
+        # self.patches.add_vector_property("exposed", length=self.params.nticks, dtype=np.uint32)  
+        # self.patches.add_vector_property("recovered", length=self.params.nticks, dtype=np.uint32) 
+
+        for nodeid, count in enumerate(self.patches.populations):
             first, last = self.population.add(count)
             self.population.nodeid[first:last] = nodeid
-
-        # Initialize population ages
-        # With the simple demographics I'm using, I won't always need ages, and when I do they will just be exponentially distributed.
-        # Note - should we separate population initialization routines from initialization of the model class?
-
-        # pyramid_file = parameters.pyramid_file
-        # age_distribution = load_pyramid_csv(pyramid_file)
-        # both = age_distribution[:, 2] + age_distribution[:, 3]  # males + females
-        # sampler = AliasedDistribution(both)
-        # bin_min_age_days = age_distribution[:, 0] * 365  # minimum age for bin, in days (include this value)
-        # bin_max_age_days = (age_distribution[:, 1] + 1) * 365  # maximum age for bin, in days (exclude this value)
-        # initial_pop = self.population.count
-        # samples = sampler.sample(initial_pop)  # sample for bins from pyramid
-        # self.population.add_scalar_property("dob", dtype=np.int32)
-        # mask = np.zeros(initial_pop, dtype=bool)
-        # dobs = self.population.dob[0:initial_pop]
-        # click.echo("Assigning day of year of birth to agents…")
-        # for i in tqdm(range(len(age_distribution))):  # for each possible bin value...
-        #     mask[:] = samples == i  # ...find the agents that belong to this bin
-        #     # ...and assign a random age, in days, within the bin
-        #     dobs[mask] = self.prng.integers(bin_min_age_days[i], bin_max_age_days[i], mask.sum())
-
-        # dobs *= -1  # convert ages to date of birth prior to _now_ (t = 0) ∴ negative
 
         return
 
     def initialize_network(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
-        # Come back to network setup.  Shouldn't need for N=1 networks, and shouldn't default to gravity
-        # distances = calc_distances(scenario.latitude.values, scenario.longitude.values, parameters.verbose)
-        # network = gravity(
-        #     scenario.population.values,
-        #     distances,
-        #     parameters.k,
-        #     parameters.a,
-        #     parameters.b,
-        #     parameters.c,
-        # )
-        # network = row_normalizer(network, parameters.max_frac)
-        # self.patches.add_vector_property("network", length=npatches, dtype=np.float32)
-        # self.patches.network[:, :] = network
         return
 
     @property
@@ -202,14 +162,12 @@ class Model:
         self._components = components
         self.instances = [self]  # instantiated instances of components
         self.phases = [self]  # callable phases of the model
-        self.censuses = []  # callable censuses of the model - to be called at the beginning of a tick to record state
         for component in components:
             instance = component(self, self.params.verbose)
             self.instances.append(instance)
             if "__call__" in dir(instance):
                 self.phases.append(instance)
-            if "census" in dir(instance):
-                self.censuses.append(instance)
+
 
         births = next(filter(lambda object: isinstance(object, (BirthsProcess, BirthsConstantPopProcess)), self.instances), None)
         # TODO: raise an exception if there are components with an on_birth function but no Births component
@@ -233,8 +191,6 @@ class Model:
 
             None
         """
-
-        model.patches.populations[tick + 1, :] = model.patches.populations[tick, :]
         return
 
     def run(self) -> None:
@@ -262,29 +218,23 @@ class Model:
         click.echo(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
 
         self.metrics = []
-        for tick in tqdm(range(self.params.nticks)):
-            timing = [tick]
-            for census in self.censuses:
-                tstart = datetime.now(tz=None)  # noqa: DTZ005
-                census.census(self, tick)
-                tfinish = datetime.now(tz=None)  # noqa: DTZ005
-                delta = tfinish - tstart
-                timing.append(delta.seconds * 1_000_000 + delta.microseconds)
-            self.metrics.append(timing)
-
-            for phase in self.phases:
-                tstart = datetime.now(tz=None)  # noqa: DTZ005
-                phase(self, tick)
-                tfinish = datetime.now(tz=None)  # noqa: DTZ005
-                delta = tfinish - tstart
-                timing.append(delta.seconds * 1_000_000 + delta.microseconds)
-            self.metrics.append(timing)
+        with alive_progress.alive_bar(self.params.nticks) as bar:
+            for tick in range(self.params.nticks):
+                timing = [tick]
+                for phase in self.phases:
+                    tstart = datetime.now(tz=None)  # noqa: DTZ005
+                    phase(self, tick)
+                    tfinish = datetime.now(tz=None)  # noqa: DTZ005
+                    delta = tfinish - tstart
+                    timing.append(delta.seconds * 1_000_000 + delta.microseconds)
+                bar()
+                self.metrics.append(timing)
 
         self.tfinish = datetime.now(tz=None)  # noqa: DTZ005
         print(f"Completed the {self.name} model at {self.tfinish}…")
 
         if self.params.verbose:
-            names = [type(census).__name__ + "_census" for census in self.censuses] + [type(phase).__name__ for phase in self.phases]
+            names = [type(phase).__name__ for phase in self.phases]
             metrics = pd.DataFrame(self.metrics, columns=["tick", *list(names)])
             plot_columns = metrics.columns[1:]
             sum_columns = metrics[plot_columns].sum()

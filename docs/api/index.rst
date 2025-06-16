@@ -22,24 +22,6 @@ Foundation classes that provide the component architecture:
    base.BaseComponent
    base.BaseLaserModel
 
-Core Components
----------------
-
-Main disease dynamics components available across models:
-
-.. autosummary::
-   :toctree: _autosummary
-   :template: custom-function-template.rst
-   :nosignatures:
-
-   Births
-   Incubation
-   Infection
-   MaternalAntibodies
-   NonDiseaseDeaths
-   RoutineImmunization
-   Susceptibility
-   Transmission
 
 Utilities
 ---------
@@ -51,21 +33,7 @@ Core utilities and computation functions:
    :template: custom-function-template.rst
    :nosignatures:
 
-   compute
-
-Model Implementations
----------------------
-
-Specialized model implementations:
-
-.. autosummary::
-   :toctree: _autosummary
-   :template: custom-function-template.rst
-   :recursive:
-   :nosignatures:
-
-   generic
-   nigeria
+   create_component
 
 Biweekly Model
 ==============
@@ -158,10 +126,7 @@ Flexible components for building SI/SIS/SIR/SEIR models:
 
    components.BirthsProcess
    components.BirthsConstantPopProcess
-   components.ExposureProcess
-   components.InfectionProcess
    components.DiseaseProcess
-   components.SusceptibilityProcess
    components.TransmissionProcess
    components.InfectRandomAgentsProcess
    components.InfectAgentsInPatchProcess

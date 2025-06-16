@@ -15,20 +15,44 @@ Key features include:
 * **High-performance computing**: Optimized data structures and C extensions
 * **Type-safe parameters**: Pydantic-based configuration management
 
+Installation and Setup
+----------------------
+
+Install laser-measles using pip:
+
+.. code-block:: bash
+
+    pip install laser-measles
+
+For development installation with all dependencies:
+
+.. code-block:: bash
+
+    pip install -e .[dev,docs,examples]
+
+**Dependencies:**
+
+* ``laser-core``: Core LASER framework
+* ``pydantic``: Parameter validation and serialization
+* ``polars``: High-performance data manipulation
+* ``sciris``: Scientific computing utilities
+* ``requests``: HTTP requests for data fetching
+
+
 Model Types
 -----------
 
 Biweekly Model
 ~~~~~~~~~~~~~~
 
-The Biweekly Model is the primary development focus, designed for performance and flexibility in measles transmission modeling.
+The Biweekly Model is focused on development, designed to be fast.
 
 **Key Characteristics:**
 
-* **Compartmental approach**: SIR (Susceptible-Infected-Recovered) model structure
-* **Time resolution**: 14-day time steps for epidemiological realism
+* **Compartmental approach**: SIR (Susceptible-Infected-Recovered) compartmental model structure
+* **Time resolution**: 14-day fixed time steps
 * **High performance**: Uses Polars DataFrames for efficient data manipulation
-* **Configurable components**: Modular disease processes including infection, vital dynamics, and vaccination campaigns
+* **Configurable components**: Modular disease processes including infection, vital dynamics, and vaccination campaigns.
 
 **Components include:**
 
@@ -225,25 +249,3 @@ laser-measles provides command-line interfaces for running models:
     # Use main CLI
     cli --help
 
-Installation and Setup
-----------------------
-
-Install laser-measles using pip:
-
-.. code-block:: bash
-
-    pip install laser-measles
-
-For development installation with all dependencies:
-
-.. code-block:: bash
-
-    pip install -e .[dev,docs,examples]
-
-**Dependencies:**
-
-* ``laser-core``: Core LASER framework
-* ``pydantic``: Parameter validation and serialization
-* ``polars``: High-performance data manipulation
-* ``sciris``: Scientific computing utilities
-* ``requests``: HTTP requests for data fetching

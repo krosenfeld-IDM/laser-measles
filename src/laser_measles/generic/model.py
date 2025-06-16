@@ -59,7 +59,6 @@ from laser_measles.base import BaseLaserModel
 from .params import GenericParams
 from .components.process_births import BirthsProcess
 from .components.process_births_contant_pop import BirthsConstantPopProcess
-from .components.process_transmission import TransmissionProcess
 
 def cast_type(a, dtype):
     return a.astype(dtype) if a.dtype != dtype else a

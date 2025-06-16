@@ -52,8 +52,8 @@ Core Model
    params
    base
 
-Model Processes
----------------
+Processes
+---------
 
 Components that modify population states and drive model dynamics:
 
@@ -114,10 +114,11 @@ General-purpose epidemiological model for any geographic region:
    utils
    cli
 
-Process Components
-------------------
 
-Flexible components for building SI/SIS/SIR/SEIR models:
+Processes
+---------
+
+Components that modify population states and drive model dynamics:
 
 .. autosummary::
    :toctree: _autosummary
@@ -130,6 +131,19 @@ Flexible components for building SI/SIS/SIR/SEIR models:
    components.TransmissionProcess
    components.InfectRandomAgentsProcess
    components.InfectAgentsInPatchProcess
+
+Trackers
+--------
+
+Components that monitor and record model state for analysis:
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: custom-function-template.rst
+   :nosignatures:
+
+   components.StatesTracker
+   components.PopulationTracker
 
 Demographics Package
 ====================
@@ -164,16 +178,3 @@ Tools for handling raster data and patch generation:
 
    RasterPatchConfig
    RasterPatchGenerator
-
-Base Classes
-------------
-
-Foundation classes for demographic data handling:
-
-.. autosummary::
-   :toctree: _autosummary
-   :template: custom-function-template.rst
-   :recursive:
-   :nosignatures:
-
-   base

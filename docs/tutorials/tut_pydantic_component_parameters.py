@@ -1,12 +1,12 @@
 # %% [markdown]
 # # Parameter validation using Pydantic
 #
-# This tutorial demonstrates the strengths of using Pydantic BaseModel to define component 
-# parameters in the `laser_measles.biweekly.components` module. Pydantic provides type 
+# This tutorial demonstrates the strengths of using Pydantic's BaseModel to define simulation 
+# parameters. Pydantic provides type 
 # validation, documentation, and error handling that makes component configuration more 
 # robust and user-friendly.
 #
-# Benefits of Using Pydantic BaseModel:
+# Benefits:
 # 1. Type Validation: Automatic validation of parameter types and values
 # 2. Range Constraints: Built-in support for numerical bounds (gt, ge, lt, le)
 # 3. Documentation: Self-documenting parameters with descriptions
@@ -30,10 +30,11 @@ from laser_measles.biweekly.components import (
     CaseSurveillanceParams
 )
 
-# %%
-# Cell 1: Type Validation and Default Values
+# %% [markdown]
+# ## Type Validation and Default Values**
 # Pydantic automatically validates parameter types and provides clear default values
 
+# %%
 print("=== Type Validation and Default Values ===")
 
 # Create parameters with default values
@@ -54,10 +55,11 @@ print(f"  beta: {custom_infection_params.beta}")
 print(f"  seasonality: {custom_infection_params.seasonality}")
 print(f"  season_start: {custom_infection_params.season_start}")
 
-# %%
-# Cell 2: Range Constraints and Validation
+# %% [markdown]
+# ## Range Constraints and Validation
 # Pydantic enforces numerical constraints automatically
 
+# %%
 print("\n=== Range Constraints and Validation ===")
 print("Testing range constraints:")
 
@@ -86,10 +88,11 @@ except ValidationError as e:
     for error in e.errors():
         print(f"  Field: {error['loc'][0]}, Error: {error['msg']}")
 
-# %%
-# Cell 3: Self-Documenting Parameters
+# %% [markdown]
+# ## Self-Documenting Parameters
 # Pydantic Field descriptions provide built-in documentation
 
+# %%
 print("\n=== Self-Documenting Parameters ===")
 
 # Display parameter documentation
@@ -102,10 +105,11 @@ print("\nImportationPressureParams Documentation:")
 for field_name, field_info in ImportationPressureParams.model_fields.items():
     print(f"  {field_name}: {field_info.description} (default: {field_info.default})")
 
-# %%
-# Cell 4: Complex Parameter Types
+# %% [markdown]
+# ## Complex Parameter Types
 # Pydantic handles complex types like DataFrames and functions with proper configuration
 
+# %%
 print("\n=== Complex Parameter Types ===")
 
 # Create a sample SIA schedule DataFrame
@@ -135,10 +139,11 @@ print(f"  Aggregation level: {sia_params.aggregation_level}")
 print(f"  Schedule shape: {sia_params.sia_schedule.shape}")
 print(f"  Filter function test: {sia_params.filter_fn('country:north_state:lga1')}")
 
-# %%
-# Cell 5: Parameter Serialization and Persistence
+# %% [markdown]
+# ## Parameter Serialization and Persistence
 # Pydantic makes it easy to save and load parameter configurations
 
+# %%
 print("\n=== Parameter Serialization and Persistence ===")
 
 # Serialize parameters to dictionary
@@ -164,10 +169,11 @@ print(f"\nJSON representation: {json_str}")
 from_json = ImportationPressureParams.model_validate_json(json_str)
 print(f"From JSON matches: {from_json == importation_params}")
 
-# %%
-# Cell 6: Parameter Validation in Practice
+# %% [markdown]
+# ## Parameter Validation in Practice
 # Let's see how validation helps prevent common configuration errors
 
+# %%
 print("\n=== Parameter Validation in Practice ===")
 print("Testing type validation:")
 
@@ -205,10 +211,11 @@ params_with_bad_time_range = ImportationPressureParams(
 )
 print(f"✓ Parameters created (time range validation happens in component): start={params_with_bad_time_range.importation_start}, end={params_with_bad_time_range.importation_end}")
 
-# %%
-# Cell 7: Parameter Inheritance and Customization
+# %% [markdown]
+# ## Parameter Inheritance and Customization
 # You can easily extend parameter classes for specialized use cases
 
+# %%
 print("\n=== Parameter Inheritance and Customization ===")
 
 # Extend InfectionParams for a specific study
@@ -240,10 +247,11 @@ try:
 except ValidationError as e:
     print(f"\n✗ Extended validation works: {e.errors()[0]['msg']}")
 
-# %%
-# Cell 8: Configuration Management
+# %% [markdown]
+# ## Configuration Management
 # Pydantic makes it easy to manage multiple parameter sets for different scenarios
 
+# %%
 print("\n=== Configuration Management ===")
 
 # Define parameter sets for different scenarios
@@ -287,9 +295,12 @@ def compare_scenarios(scenario1, scenario2, param_type):
 
 compare_scenarios("baseline", "high_transmission", "infection")
 
-# %%
-# Cell 9: IDE Support and Type Hints
+# %% [markdown]
+
+# ## IDE Support and Type Hints
 # Pydantic provides excellent IDE support with autocomplete and type checking
+
+# %%
 
 print("\n=== IDE Support and Type Hints ===")
 
@@ -318,53 +329,3 @@ is_valid = validate_parameter_ranges(test_params)
 print(f"Created parameters are valid: {is_valid}")
 print(f"  Beta: {test_params.beta}")
 print(f"  Seasonality: {test_params.seasonality}")
-
-# %% [markdown]
-# ## Summary: Why Pydantic for Epidemiological Model Parameters?
-#
-# This tutorial has demonstrated the comprehensive benefits of using Pydantic BaseModel
-# for component parameters in the `laser_measles.biweekly.components` module.
-#
-# ### Key Benefits Demonstrated:
-#
-# 1. **Robust Validation**: Prevents configuration errors that could invalidate simulations
-# 2. **Self-Documentation**: Parameters document themselves with descriptions and constraints
-# 3. **Developer Experience**: IDE support, type hints, and clear error messages
-# 4. **Configuration Management**: Easy serialization and scenario comparison
-# 5. **Extensibility**: Simple inheritance for specialized parameter sets
-# 6. **Error Prevention**: Catches mistakes early, not during long-running simulations
-#
-# ### Epidemiological Modeling Advantages:
-#
-# - **Parameter Accuracy**: Critical for valid epidemiological conclusions
-# - **Reproducibility**: Easy save/load of exact parameter configurations
-# - **Collaboration**: Clear parameter documentation facilitates team work
-# - **Sensitivity Analysis**: Systematic parameter variation and comparison
-#
-# ### Best Practices:
-#
-# - Use Field descriptions for all parameters
-# - Set appropriate constraints (ranges, types)
-# - Implement cross-parameter validation in component `_validate_params` methods
-# - Create scenario-based parameter sets for systematic comparison
-# - Leverage inheritance for specialized model variants
-#
-# **Next Steps**: Try implementing these patterns in your own epidemiological models
-# to improve parameter management and reduce configuration errors.
-
-# %%
-print("\n=== TUTORIAL COMPLETE ===")
-print("""
-This tutorial demonstrated the power of Pydantic BaseModel for epidemiological model parameters.
-
-The biweekly model components in laser_measles benefit from:
-✓ Automatic validation and error prevention
-✓ Self-documenting parameters with clear constraints  
-✓ Easy configuration management and scenario comparison
-✓ Excellent developer experience with IDE support
-✓ Extensible parameter classes for specialized studies
-✓ Robust serialization for reproducible research
-
-Parameter accuracy is critical in epidemiological modeling - Pydantic helps ensure
-your model configurations are correct, documented, and reproducible.
-""")

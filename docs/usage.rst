@@ -5,14 +5,15 @@ Usage
 Overview
 --------
 
-laser-measles is a spatial epidemiological modeling toolkit for measles transmission dynamics, built on the LASER framework. It provides a flexible, component-based architecture for disease simulation with support for multiple geographic scales and demographic configurations.
+laser-measles is a spatial epidemiological modeling toolkit for measles transmission dynamics, built on the `LASER framework <https://github.com/InstituteforDiseaseModeling/laser>`_. 
+It provides a flexible, component-based architecture for disease simulation with support for multiple geographic scales and demographic configurations.
 
 Key features include:
 
 * **Spatial modeling**: Support for geographic regions with administrative boundaries and population distributions
 * **Multiple model types**: Biweekly and Generic models for different use cases
 * **Component-based architecture**: Interchangeable disease dynamics components
-* **High-performance computing**: Optimized data structures and C extensions
+* **High-performance computing**: Optimized data structures and Numba JIT compilation
 * **Type-safe parameters**: Pydantic-based configuration management
 
 Installation and Setup
@@ -38,14 +39,26 @@ For development installation with all dependencies:
 * ``sciris``: Scientific computing utilities
 * ``requests``: HTTP requests for data fetching
 
+----------
+
 
 Model Types
 -----------
 
+There are two main model types in laser-measles: the Biweekly Model and the Generic Model. 
+The Biweekly Model is focused to be fast and easy to use. It is a stochastic compartmental model 
+designed to be used for quick simulations and parameter exploration.
+However, it has some important limitations and is not suitable for all use cases.
+The Generic Model is a more flexible and powerful agent-based model that can be used for a wide range of scenarios.
+It is designed to be used for detailed simulations and research.
+
+----------
+
 Biweekly Model
 ~~~~~~~~~~~~~~
 
-The Biweekly Model is focused on development, designed to be fast.
+The Biweekly Model is focused to be fast and easy to use. It is designed to be used for quick simulations and parameter exploration.
+However, it has some important limitations and is not suitable for all use cases.
 
 **Key Characteristics:**
 
@@ -81,16 +94,17 @@ The Biweekly Model is focused on development, designed to be fast.
     model = BiweeklyModel(scenario_data, params)
     model.run()
 
+----------
+
 Generic Model
 ~~~~~~~~~~~~~
 
-The Generic Model provides a general-purpose implementation suitable for any geographic region with flexible compartmental structures.
+The Generic Model provides a general-purpose agent-based implementation.
 
 **Key Characteristics:**
 
-* **Flexible compartments**: Supports SI, SIS, SIR, SEIR, and custom compartmental models
 * **Daily time steps**: Fine-grained temporal resolution
-* **Geographic flexibility**: Adaptable to any region with appropriate demographic data
+* **Geographic flexibility**: Adaptable to regions using the demographics package
 * **Comprehensive demographics**: Births, deaths, aging, and migration processes
 
 **Components include:**
@@ -122,6 +136,8 @@ The Generic Model provides a general-purpose implementation suitable for any geo
         TransmissionProcess(model)
     ]
     model.run()
+
+----------
 
 Demographics Package
 --------------------
@@ -172,6 +188,10 @@ laser-measles uses Pydantic for type-safe parameter management, providing automa
 * ``BiweeklyParams``: Configuration for biweekly models with epidemiological parameters
 * ``GenericParams``: Flexible parameters for generic model implementations
 
+**Component Classes:**
+Components come in "process" and "tracker" categories and each component has a corresponding parameter class. 
+Each model (Biweekly or Generic) has its own set of components. See the :doc:`API documentation <api/index>` for more details.
+
 **Benefits:**
 
 * **Type safety**: Automatic validation of parameter types and ranges
@@ -202,8 +222,8 @@ laser-measles is optimized for performance through several technical approaches:
 **LaserFrame Architecture:**
     High-performance array-based structure for agent populations, built on the LASER framework
 
-**C Extensions:**
-    Performance-critical operations implemented in C for maximum speed
+**Numba JIT Compilation:**
+    Performance-critical operations implemented in Numba for maximum speed
 
 **Polars DataFrames:**
     Efficient data manipulation using Polars for biweekly model operations
@@ -228,24 +248,3 @@ The component system provides a uniform interface for disease dynamics with inte
 * **Epidemiological**: Infection, transmission, immunity, incubation
 * **Intervention**: Vaccination, case management, surveillance
 * **Environmental**: Importation, seasonal effects, spatial mixing
-
-CLI Usage
----------
-
-laser-measles provides command-line interfaces for running models:
-
-**Available Commands:**
-
-* ``cli``: Main CLI interface for general operations
-* ``measles``: Generic model runner for custom geographic regions
-
-**Example:**
-
-.. code-block:: bash
-
-    # Run generic model
-    measles --config model_config.json --output results/
-
-    # Use main CLI
-    cli --help
-

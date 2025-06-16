@@ -53,7 +53,7 @@ pygments_style = "sphinx"
 modindex_common_prefix = ["laser_measles."]
 
 # List of patterns, relative to source directory, to exclude
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints", "tutorials/not_ready/**"]
 
 # Suppress certain warnings
 suppress_warnings = ['autosectionlabel.*']

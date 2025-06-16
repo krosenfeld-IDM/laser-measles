@@ -16,6 +16,7 @@ Subpackages
    laser_measles.demographics
    laser_measles.generic
    laser_measles.nigeria
+   laser_measles.washington
 
 Submodules
 ----------
@@ -36,6 +37,14 @@ laser\_measles.api module
    :show-inheritance:
    :undoc-members:
 
+laser\_measles.base module
+--------------------------
+
+.. automodule:: laser_measles.base
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 laser\_measles.births module
 ----------------------------
 
@@ -48,6 +57,14 @@ laser\_measles.cli module
 -------------------------
 
 .. automodule:: laser_measles.cli
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+laser\_measles.components module
+--------------------------------
+
+.. automodule:: laser_measles.components
    :members:
    :show-inheritance:
    :undoc-members:

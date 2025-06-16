@@ -166,6 +166,7 @@ docs = [
     "sphinxcontrib-napoleon>=0.7",
 ]
 examples = [
+    "jupytext>=1.17.2",
     "notebook>=7.4.3",
     "seaborn>=0.13.2",
 ]

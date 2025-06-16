@@ -25,7 +25,12 @@ Learn more
         Details on classes and functions.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
+   :hidden:
+
+   usage
+   tutorials
+   api/index
    installation
    contributing
    authors

@@ -51,18 +51,17 @@ import numpy as np
 import pandas as pd
 from laser_core.laserframe import LaserFrame
 from laser_core.propertyset import PropertySet
-from laser_core.random import seed as seed_prng
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
-import alive_progress
 
+from laser_measles.base import BaseLaserModel
 from .components.process_births import BirthsProcess, BirthsConstantPopProcess
 from .components.process_transmission import TransmissionProcess
 
 def cast_type(a, dtype):
     return a.astype(dtype) if a.dtype != dtype else a
-class Model:
+class Model(BaseLaserModel[pd.DataFrame, PropertySet]):
     """
     A class to represent a simulation model.
     """
@@ -81,15 +80,8 @@ class Model:
 
             None
         """
-
-        self.tinit = datetime.now(tz=None)  # noqa: DTZ005
-        click.echo(f"{self.tinit}: Creating the {name} model…")
-        self.scenario = scenario
-        self.params = parameters
-        self.name = name
-
-        self.prng = seed_prng(parameters.seed if parameters.seed is not None else self.tinit.microsecond)
-
+        super().__init__(scenario, parameters, name)
+        
         click.echo(f"Initializing the {name} model with {len(scenario)} patches…")
 
         self.initialize_patches(scenario, parameters)
@@ -130,51 +122,15 @@ class Model:
     def initialize_network(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
         return
 
-    @property
-    def components(self) -> list:
+    def _setup_components(self) -> None:
         """
-        Retrieve the list of model components.
-
-        Returns:
-
-            list: A list containing the components.
+        Setup birth component registration for generic model.
         """
-
-        return self._components
-
-    @components.setter
-    def components(self, components: list) -> None:
-        """
-        Sets up the components of the model and initializes instances and phases.
-
-        This function takes a list of component types, creates an instance of each, and adds each callable component to the phase list.
-        It also registers any components with an `on_birth` function with the `Births` component.
-
-        Args:
-
-            components (list): A list of component classes to be initialized and integrated into the model.
-
-        Returns:
-
-            None
-        """
-
-        self._components = components
-        self.instances = [self]  # instantiated instances of components
-        self.phases = [self]  # callable phases of the model
-        for component in components:
-            instance = component(self, self.params.verbose)
-            self.instances.append(instance)
-            if "__call__" in dir(instance):
-                self.phases.append(instance)
-
-
-        births = next(filter(lambda object: isinstance(object, (BirthsProcess, BirthsConstantPopProcess)), self.instances), None)
+        births = next(filter(lambda obj: isinstance(obj, (BirthsProcess, BirthsConstantPopProcess)), self.instances), None)
         # TODO: raise an exception if there are components with an on_birth function but no Births component
         for instance in self.instances:
             if births is not None and "on_birth" in dir(instance):
                 births.initializers.append(instance)
-        return
 
     def __call__(self, model, tick: int) -> None:
         """
@@ -191,59 +147,6 @@ class Model:
 
             None
         """
-        return
-
-    def run(self) -> None:
-        """
-        Execute the model for a specified number of ticks, recording the time taken for each phase.
-
-        This method initializes the start time, iterates over the number of ticks specified in the model parameters,
-        and for each tick, it executes each phase of the model while recording the time taken for each phase.
-
-        The metrics for each tick are stored in a list. After completing all ticks, it records the finish time and,
-        if verbose mode is enabled, prints a summary of the timing metrics.
-
-        Attributes:
-
-            tstart (datetime): The start time of the model execution.
-            tfinish (datetime): The finish time of the model execution.
-            metrics (list): A list of timing metrics for each tick and phase.
-
-        Returns:
-
-            None
-        """
-
-        self.tstart = datetime.now(tz=None)  # noqa: DTZ005
-        click.echo(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
-
-        self.metrics = []
-        with alive_progress.alive_bar(self.params.nticks) as bar:
-            for tick in range(self.params.nticks):
-                timing = [tick]
-                for phase in self.phases:
-                    tstart = datetime.now(tz=None)  # noqa: DTZ005
-                    phase(self, tick)
-                    tfinish = datetime.now(tz=None)  # noqa: DTZ005
-                    delta = tfinish - tstart
-                    timing.append(delta.seconds * 1_000_000 + delta.microseconds)
-                bar()
-                self.metrics.append(timing)
-
-        self.tfinish = datetime.now(tz=None)  # noqa: DTZ005
-        print(f"Completed the {self.name} model at {self.tfinish}…")
-
-        if self.params.verbose:
-            names = [type(phase).__name__ for phase in self.phases]
-            metrics = pd.DataFrame(self.metrics, columns=["tick", *list(names)])
-            plot_columns = metrics.columns[1:]
-            sum_columns = metrics[plot_columns].sum()
-            width = max(map(len, sum_columns.index))
-            for key in sum_columns.index:
-                print(f"{key:{width}}: {sum_columns[key]:13,} µs")
-            print("=" * (width + 2 + 13 + 3))
-            print(f"{'Total:':{width + 1}} {sum_columns.sum():13,} microseconds")
-
         return
 
     def visualize(self, pdf: bool = True) -> None:

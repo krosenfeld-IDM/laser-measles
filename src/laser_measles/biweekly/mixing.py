@@ -1,12 +1,56 @@
 import numpy as np
 import polars as pl
+from astropy.coordinates import angular_separation
 
 # Constants for gravity diffusion model
 MAX_DISTANCE = 100000000  # km, used to prevent self-migration
 MIN_DISTANCE = 10  # km, minimum distance to prevent excessive neighbor migration
 
+def pairwise_haversine(df):
+    """pairwise distances for all (lon, lat) points"""
 
-def pairwise_haversine(lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
+    # mean earth radius in km
+    earth_radius_km = 6367
+
+    # convert from degrees to radians using polars
+    data = np.deg2rad(df[['lon', 'lat']].to_numpy())
+    lon = data[:, 0]
+    lat = data[:, 1]
+
+    # matrices of pairwise differences for latitudes & longitudes
+    dlat = lat[:, None] - lat
+    dlon = lon[:, None] - lon
+
+    # vectorized haversine distance calculation
+    d = np.sin(dlat / 2) ** 2 + np.cos(lat[:, None]) * np.cos(lat) * np.sin(dlon / 2) ** 2
+    return 2 * earth_radius_km * np.arcsin(np.sqrt(d))
+
+def init_gravity_diffusion(df, scale, dist_exp):
+    if len(df) == 1:
+        return np.ones((1, 1))
+
+    distances = pairwise_haversine(df)
+    # distances = angular_separation(df['lat'], df['lon']).to_value("deg")
+    
+    # pops = df.population.values
+    pops = np.array(df['pop'])
+    pops = pops[:, np.newaxis].T
+    pops = np.repeat(pops, pops.size, axis=0).astype(np.float64)
+
+    np.fill_diagonal(distances, 100000000)  # Prevent divide by zero errors and self migration
+    diffusion_matrix = pops / (distances + 10) ** dist_exp  # minimum distance prevents excessive neighbor migration
+    np.fill_diagonal(diffusion_matrix, 0)
+
+    # normalize average total outbound migration to 1
+    diffusion_matrix = diffusion_matrix / np.mean(np.sum(diffusion_matrix, axis=1))
+
+    diffusion_matrix *= scale
+    diagonal = 1 - np.sum(diffusion_matrix, axis=1)  # normalized outbound migration by source
+    np.fill_diagonal(diffusion_matrix, diagonal)
+
+    return diffusion_matrix
+
+def pairwise_haversine_(lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
     """Calculate pairwise distances for all (lon, lat) points using the Haversine formula.
 
     Args:
@@ -39,7 +83,7 @@ def pairwise_haversine(lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
     return 2 * earth_radius_km * np.arcsin(np.sqrt(d))
 
 
-def init_gravity_diffusion(df: pl.DataFrame | tuple[np.ndarray, np.ndarray], scale: float, dist_exp: float) -> np.ndarray:
+def init_gravity_diffusion_(df: pl.DataFrame | tuple[np.ndarray, np.ndarray], scale: float, dist_exp: float) -> np.ndarray:
     """Initialize a gravity diffusion matrix for population mixing.
 
     Args:

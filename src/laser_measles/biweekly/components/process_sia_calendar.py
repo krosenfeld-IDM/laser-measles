@@ -1,4 +1,3 @@
-import math
 from collections.abc import Callable
 
 import numpy as np
@@ -7,8 +6,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from laser_measles.base import BaseComponent
-
-
+from laser_measles.utils import cast_type
 
 
 class SIACalendarParams(BaseModel):
@@ -98,14 +96,14 @@ class SIACalendarProcess(BaseComponent):
         for row in sia_schedule.iter_rows(named=True):
             group_key = row[self.params.group_column]
             scheduled_date = row[self.params.date_column]
-            
+
             # Create a unique identifier for this SIA
             sia_id = f"{group_key}_{scheduled_date}"
-            
+
             # Skip if this SIA has already been implemented
             if sia_id in self.implemented_sias:
                 continue
-                
+
             if group_key in self.node_mapping:
                 node_indices = self.node_mapping[group_key]
 
@@ -125,7 +123,9 @@ class SIACalendarProcess(BaseComponent):
                 if self.verbose:
                     total_vaccinated = vaccinated.sum()
                     if total_vaccinated > 0:
-                        print(f"Date {current_date}: Implementing SIA for {group_key} (scheduled for {scheduled_date}) - vaccinated {total_vaccinated} individuals")
+                        print(
+                            f"Date {current_date}: Implementing SIA for {group_key} (scheduled for {scheduled_date}) - vaccinated {total_vaccinated} individuals"
+                        )
 
     def get_sia_schedule(self) -> pl.DataFrame:
         """

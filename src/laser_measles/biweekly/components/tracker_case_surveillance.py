@@ -12,11 +12,27 @@ from laser_measles.base import BaseComponent
 
 
 def cast_type(a, dtype):
+    """Cast array to specified dtype if different from current dtype.
+
+    Args:
+        a: Array to cast.
+        dtype: Target data type.
+
+    Returns:
+        Array with the specified dtype.
+    """
     return a.astype(dtype) if a.dtype != dtype else a
 
 
 class CaseSurveillanceParams(BaseModel):
-    """Parameters specific to the case surveillance component."""
+    """Parameters specific to the case surveillance component.
+
+    Attributes:
+        detection_rate: Probability of detecting an infected case.
+        filter_fn: Function to filter which nodes to include in aggregation.
+        aggregate_cases: Whether to aggregate cases by geographic level.
+        aggregation_level: Number of levels to use for aggregation (e.g., 3 for country:state:lga).
+    """
 
     detection_rate: float = Field(0.1, description="Probability of detecting an infected case", ge=0.0, le=1.0)
     filter_fn: Callable[[str], bool] = Field(lambda x: True, description="Function to filter which nodes to include in aggregation")
@@ -25,28 +41,21 @@ class CaseSurveillanceParams(BaseModel):
 
 
 class CaseSurveillanceTracker(BaseComponent):
-    """
-    Component for tracking detected cases in the model.
+    """Component for tracking detected cases in the model.
 
     This component:
     1. Simulates case detection based on a detection rate
     2. Optionally tracks detected cases aggregated by geographic level
     3. Uses a filter function to determine which nodes to include
 
-    Parameters
-    ----------
-    model : object
-        The simulation model containing nodes, states, and parameters
-    verbose : bool, default=False
-        Whether to print verbose output during simulation
-    params : Optional[CaseSurveillanceParams], default=None
-        Component-specific parameters. If None, will use default parameters
+    Case detection is simulated using a binomial distribution. Cases can be tracked
+    at individual node level or aggregated by geographic level. Uses a filter function
+    to determine which nodes to include.
 
-    Notes
-    -----
-    - Case detection is simulated using a binomial distribution
-    - Cases can be tracked at individual node level or aggregated by geographic level
-    - Uses a filter function to determine which nodes to include
+    Args:
+        model: The simulation model containing nodes, states, and parameters.
+        verbose: Whether to print verbose output during simulation. Defaults to False.
+        params: Component-specific parameters. If None, will use default parameters.
     """
 
     def __init__(self, model, verbose: bool = False, params: CaseSurveillanceParams | None = None) -> None:
@@ -80,11 +89,21 @@ class CaseSurveillanceTracker(BaseComponent):
             self.reported_cases = np.zeros((model.params.nticks, len(self.node_indices)), dtype=model.nodes.states.dtype)
 
     def _validate_params(self) -> None:
-        """Validate component parameters."""
+        """Validate component parameters.
+
+        Raises:
+            ValueError: If aggregation_level is less than 1.
+        """
         if self.params.aggregation_level < 1:
             raise ValueError("aggregation_level must be at least 1")
 
     def __call__(self, model, tick: int) -> None:
+        """Process case surveillance for the current tick.
+
+        Args:
+            model: The simulation model.
+            tick: Current time step.
+        """
         # Get current infected cases
         infected = model.nodes.states[1]  # Infected state is index 1
 
@@ -110,16 +129,13 @@ class CaseSurveillanceTracker(BaseComponent):
             self.reported_cases[tick] = detected_cases
 
     def get_reported_cases(self) -> pl.DataFrame:
-        """
-        Get a DataFrame of reported cases over time.
+        """Get a DataFrame of reported cases over time.
 
-        Returns
-        -------
-        pl.DataFrame
+        Returns:
             DataFrame with columns:
-            - tick: Time step
-            - group_id: Group identifier (if aggregated) or node_id (if not aggregated)
-            - cases: Number of reported cases
+                - tick: Time step
+                - group_id: Group identifier (if aggregated) or node_id (if not aggregated)
+                - cases: Number of reported cases
         """
         # Create a list to store the data
         data = []
@@ -141,18 +157,13 @@ class CaseSurveillanceTracker(BaseComponent):
         return pl.DataFrame(data)
 
     def plot(self, fig: Figure = None):
-        """
-        Create a heatmap visualization of log(cases+1) over time.
+        """Create a heatmap visualization of log(cases+1) over time.
 
-        Parameters
-        ----------
-        fig : Figure, optional
-            Existing figure to plot on. If None, a new figure will be created.
+        Args:
+            fig: Existing figure to plot on. If None, a new figure will be created.
 
-        Yields
-        ------
-        Figure
-            The figure containing the heatmap visualization
+        Yields:
+            The figure containing the heatmap visualization.
         """
         # Get the case data
         df = self.get_reported_cases()

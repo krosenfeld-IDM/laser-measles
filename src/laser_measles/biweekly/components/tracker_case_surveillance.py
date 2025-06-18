@@ -1,10 +1,12 @@
+from collections.abc import Callable
+
+import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 import seaborn as sns
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from pydantic import BaseModel, Field
-from typing import Callable
+from pydantic import BaseModel
+from pydantic import Field
 
 from laser_measles.base import BaseComponent
 
@@ -91,7 +93,6 @@ class CaseSurveillanceTracker(BaseComponent):
             for group_idx, (_, node_indices) in enumerate(self.node_mapping.items()):
                 # Get infected cases for this group's nodes
                 group_infected = infected[node_indices]
-
 
                 if self.params.detection_rate < 1:
                     # Simulate case detection using binomial distribution

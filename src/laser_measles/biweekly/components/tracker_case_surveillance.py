@@ -88,12 +88,17 @@ class CaseSurveillanceTracker(BaseComponent):
 
         if self.params.aggregate_cases:
             # For each group, aggregate detected cases from its nodes
-            for group_idx, (group_id, node_indices) in enumerate(self.node_mapping.items()):
+            for group_idx, (_, node_indices) in enumerate(self.node_mapping.items()):
                 # Get infected cases for this group's nodes
                 group_infected = infected[node_indices]
 
-                # Simulate case detection using binomial distribution
-                detected_cases = cast_type(np.random.binomial(n=group_infected, p=self.params.detection_rate), model.nodes.states.dtype)
+
+                if self.params.detection_rate < 1:
+                    # Simulate case detection using binomial distribution
+                    detected_cases = cast_type(np.random.binomial(n=group_infected, p=self.params.detection_rate), model.nodes.states.dtype)
+                else:
+                    # Otherwise report infections
+                    detected_cases = cast_type(group_infected, model.nodes.states.dtype)
 
                 # Store total detected cases for this group
                 self.reported_cases[tick, group_idx] = detected_cases.sum()

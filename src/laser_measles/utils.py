@@ -152,4 +152,7 @@ def cast_type(a, dtype):
     Returns:
         The value cast to the specified data type
     """
-    return a.astype(dtype) if a.dtype != dtype else a
+    if isinstance(a, np.ndarray):
+        return a.astype(dtype) if a.dtype != dtype else a
+    else:
+        return a

@@ -23,7 +23,6 @@ Dependencies:
 import re
 from pathlib import Path
 
-import click
 import numpy as np
 from laser_core.propertyset import PropertySet
 
@@ -107,7 +106,7 @@ def get_parameters(kwargs) -> PropertySet:
     if kwargs.get("params") is not None:
         paramfile = Path(kwargs.get("params"))
         params += PropertySet.load(paramfile)
-        click.echo(f"Loaded parameters from `{paramfile}`…")
+        print(f"Loaded parameters from `{paramfile}`…")
 
     # Finally, overwrite any parameters with those from the command line (optional)
     for key, value in kwargs.items():
@@ -115,16 +114,16 @@ def get_parameters(kwargs) -> PropertySet:
             continue  # handled above
 
         if key != "param":
-            click.echo(f"Using `{value}` for parameter `{key}` from the command line…")
+            print(f"Using `{value}` for parameter `{key}` from the command line…")
             params[key] = value
         else:  # arbitrary param:value pairs from the command line
             for kvp in kwargs["param"]:
                 key, value = re.split("[=:]+", kvp)
                 if key not in params:
-                    click.echo(f"Unknown parameter `{key}` ({value=}). Skipping…")
+                    print(f"Unknown parameter `{key}` ({value=}). Skipping…")
                     continue
                 value = type(params[key])(value)  # Cast the value to the same type as the existing parameter
-                click.echo(f"Using `{value}` for parameter `{key}` from the command line…")
+                print(f"Using `{value}` for parameter `{key}` from the command line…")
                 params[key] = value
 
     params.beta = np.float32(np.float32(params.r_naught) / np.float32(params.inf_mean))

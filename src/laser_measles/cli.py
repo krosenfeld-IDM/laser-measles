@@ -12,17 +12,22 @@ Why does this file exist, and why not put this in __main__?
   - When you import __main__ it will get executed again (as a module) because
     there"s no ``laser_measles.__main__`` in ``sys.modules``.
 
-  Also see (1) from https://click.palletsprojects.com/en/stable/setuptools/
+  Also see (1) from https://typer.tiangolo.com/tutorial/
 """
 
-import click
+import typer
+from typing import List
 
 from .core import compute
 
+app = typer.Typer()
 
-@click.command()
-@click.argument("names", nargs=-1)
-def run(names):
-    click.echo(compute(names))
 
-    return
+@app.command()
+def run(names: List[str] = typer.Argument(default=[], help="Names to process")):
+    """Main command to run laser-measles CLI."""
+    typer.echo(compute(names))
+
+
+if __name__ == "__main__":
+    app()

@@ -18,6 +18,7 @@ dependencies = [
   "polars>=1.30.0",
   "pyarrow>=20.0.0",
   "rastertoolkit>=0.3.11",
+  "typer>=0.12.0",
 ]
 
 requires-python = ">= 3.10"
@@ -61,9 +62,9 @@ Issues = "https://github.com/InstituteforDiseaseModeling/laser-measles/issues"
 Changelog = "https://github.com/InstituteforDiseaseModeling/laser-measles/blob/master/CHANGELOG.md"
 
 [project.scripts]
-cli = "laser_measles.cli:run"
-nigeria = "laser_measles.nigeria.model:run"
-measles = "laser_measles.generic.model:run"
+cli = "laser_measles.cli:app"
+nigeria = "laser_measles.nigeria.model:app"
+measles = "laser_measles.generic.model:app"
 
 [tool.ruff]
 extend-exclude = ["static", "ci/templates"]

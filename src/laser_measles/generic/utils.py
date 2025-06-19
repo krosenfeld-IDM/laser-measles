@@ -21,7 +21,6 @@ Functions:
         Set the population susceptibility level at the start of the simulation in a specific patch.
 """
 
-import click
 import numpy as np
 from laser_core.migration import distance
 
@@ -53,7 +52,7 @@ def calc_distances(latitudes: np.ndarray, longitudes: np.ndarray, verbose: bool 
         distances[i, :] = distance(lat, long, latitudes, longitudes)
 
     if verbose:
-        click.echo(f"Upper left corner of distance matrix:\n{distances[0:4, 0:4]}")
+        print(f"Upper left corner of distance matrix:\n{distances[0:4, 0:4]}")
 
     return distances
 
@@ -87,9 +86,9 @@ def calc_capacity(population: np.uint32, nticks: np.uint32, cbr: np.float32, ver
     capacity = np.uint32(population * (1 + daily_rate) ** nticks)
 
     if verbose:
-        click.echo(f"Population growth: {population:,} … {capacity:,}")
+        print(f"Population growth: {population:,} … {capacity:,}")
         alternate = np.uint32(population * (1 + cbr / 1000) ** (nticks / 365))  # KM What is the purpose of this line?
-        click.echo(f"Alternate growth:  {population:,} … {alternate:,}")
+        print(f"Alternate growth:  {population:,} … {alternate:,}")
 
     return capacity
 

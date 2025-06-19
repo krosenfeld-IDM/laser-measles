@@ -48,7 +48,6 @@ Model Class:
 
 from datetime import datetime
 
-import click
 import numpy as np
 import pandas as pd
 from alive_progress import alive_bar
@@ -104,19 +103,19 @@ class Model:
         """
 
         self.tinit = datetime.now(tz=None)  # noqa: DTZ005
-        click.echo(f"{self.tinit}: Creating the {name} model…")
+        print(f"{self.tinit}: Creating the {name} model…")
         self.scenario = scenario
         self.params = parameters
         self.name = name
 
         self.prng = seed_prng(parameters.seed if parameters.seed is not None else self.tinit.microsecond)
 
-        click.echo(f"Initializing the {name} model with {len(scenario)} patches…")
+        print(f"Initializing the {name} model with {len(scenario)} patches…")
 
         if parameters.verbose:
-            click.echo(f"Counties: {scenario.name.values[0:4]}...")
-            click.echo(f"Populations: {scenario.population.values[0:4]}...")
-            click.echo(f"Lat/longs: {list(zip(scenario.latitude.values, scenario.longitude.values))[0:4]}...")
+            print(f"Counties: {scenario.name.values[0:4]}...")
+            print(f"Populations: {scenario.population.values[0:4]}...")
+            print(f"Lat/longs: {list(zip(scenario.latitude.values, scenario.longitude.values))[0:4]}...")
 
         # We need some patches with population data ...
         npatches = len(scenario)
@@ -161,7 +160,7 @@ class Model:
         samples = sampler.sample(initial_pop)  # sample for bins from pyramid
         mask = np.zeros(initial_pop, dtype=bool)
         dobs = self.population.dob[0:initial_pop]
-        click.echo("Assigning day of year of birth to agents…")
+        print("Assigning day of year of birth to agents…")
         with alive_bar(len(age_distribution)) as bar:
             for i in range(len(age_distribution)):  # for each possible bin value...
                 mask[:] = samples == i  # ...find the agents that belong to this bin
@@ -259,7 +258,7 @@ class Model:
         """
 
         self.tstart = datetime.now(tz=None)  # noqa: DTZ005
-        click.echo(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
+        print(f"{self.tstart}: Running the {self.name} model for {self.params.nticks} ticks…")
 
         self.metrics = []
         with alive_bar(self.params.nticks) as bar:
@@ -308,7 +307,7 @@ class Model:
                     plt.show()
 
         else:
-            click.echo("Generating PDF output…")
+            print("Generating PDF output…")
             pdf_filename = f"{self.name} {self.tstart:%Y-%m-%d %H%M%S}.pdf"
             with PdfPages(pdf_filename) as pdf:
                 for instance in self.instances:
@@ -316,7 +315,7 @@ class Model:
                         pdf.savefig()
                         plt.close()
 
-            click.echo(f"PDF output saved to '{pdf_filename}'.")
+            print(f"PDF output saved to '{pdf_filename}'.")
 
         return
 

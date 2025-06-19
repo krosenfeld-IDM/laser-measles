@@ -31,16 +31,11 @@ Model Class:
             Generates plots for the scenario patches and populations, distribution of day of birth, and update phase times.
 """
 
-from datetime import datetime
-from datetime import timedelta
 
-import click
 from laser_core.laserframe import LaserFrame
 
 from laser_measles.base import BaseLaserModel
 from laser_measles.biweekly.base import BaseScenario
-from laser_measles.biweekly.components import InfectionProcess
-from laser_measles.biweekly.components import VitalDynamicsProcess
 from laser_measles.biweekly.params import BiweeklyParams
 
 
@@ -51,35 +46,35 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
     Args:
 
         scenario (BaseScenario): A scenario containing the scenario data, including population, latitude, and longitude.
-        parameters (BiweeklyParams): A set of parameters for the model.
+        params (BiweeklyParams): A set of parameters for the model.
         name (str, optional): The name of the model. Defaults to "biweekly".
 
     Notes:
 
         This class initializes the model with the given scenario and parameters. The scenario must include the following columns:
 
-            - `ids` (string): The name of the patch or location.
+            - `id` (string): The name of the patch or location.
             - `pop` (integer): The population count for the patch.
             - `lat` (float degrees): The latitude of the patches (e.g., from geographic or population centroid).
             - `lon` (float degrees): The longitude of the patches (e.g., from geographic or population centroid).
             - `mcv1` (float): The MCV1 coverage for the patches.
     """
 
-    def __init__(self, scenario: BaseScenario, parameters: BiweeklyParams, name: str = "biweekly") -> None:
+    def __init__(self, scenario: BaseScenario, params: BiweeklyParams, name: str = "biweekly") -> None:
         """
         Initialize the disease model with the given scenario and parameters.
 
         Args:
 
             scenario (BaseScenario): A scenario containing the scenario data, including population, latitude, and longitude.
-            parameters (BiweeklyParams): A set of parameters for the model, including seed, nticks, k, a, b, c, max_frac, cbr, verbose, and pyramid_file.
+            params (BiweeklyParams): A set of parameters for the model, including seed, nticks, k, a, b, c, max_frac, cbr, verbose, and pyramid_file.
             name (str, optional): The name of the model. Defaults to "biweekly".
 
         Returns:
 
             None
         """
-        super().__init__(scenario, parameters, name)
+        super().__init__(scenario, params, name)
 
         # Add nodes to the model
         num_nodes = len(scenario)
@@ -89,7 +84,6 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
         self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
 
         return
-
 
     def __call__(self, model, tick: int) -> None:
         """
@@ -106,3 +100,6 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
         """
         return
 
+
+# Create an alias for BiweeklyModel as Model
+Model = BiweeklyModel

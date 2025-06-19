@@ -26,7 +26,6 @@ Example:
     non_disease_deaths.plot()
 """
 
-import click
 import numpy as np
 from alive_progress import alive_bar
 from laser_core.demographics import KaplanMeierEstimator
@@ -214,6 +213,6 @@ class NonDiseaseDeaths:
             plt.xlabel("Years Since Birth")
             yield
         else:
-            click.echo("Found no individuals born in the first year.")
+            print("Found no individuals born in the first year.")
 
         return

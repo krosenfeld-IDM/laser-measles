@@ -6,7 +6,7 @@ compartmental model. The model includes various components such as births,
 non-disease deaths, susceptibility, maternal antibodies, routine immunization,
 infection, incubation, and transmission.
 
-The script uses the Click library to handle command-line options for configuring
+The script uses the Typer library to handle command-line options for configuring
 the simulation parameters, including the number of ticks to run, random seed,
 verbosity, visualization options, output file, and parameter overrides.
 
@@ -31,8 +31,9 @@ Usage:
     Example: ``python nn_model.py --nticks 365 --seed 20241107 --verbose --viz --pdf``
 """
 
-import click
+import typer
 import numpy as np
+from typing import List, Union, Optional
 
 from laser_measles import Births
 from laser_measles import Incubation
@@ -48,16 +49,19 @@ from laser_measles.nigeria import get_scenario
 from laser_measles.utils import seed_infections_in_patch
 
 
-@click.command()
-@click.option("--nticks", default=365, help="Number of ticks to run the simulation")
-@click.option("--seed", default=20241107, help="Random seed")
-@click.option("--verbose", is_flag=True, help="Print verbose output")
-@click.option("--no-viz", is_flag=True, help="Suppress validation visualizations")
-@click.option("--pdf", is_flag=True, help="Output visualization results as a PDF")
-@click.option("--output", default=None, help="Output file for results")
-@click.option("--params", default=None, help="JSON file with parameters")
-@click.option("--param", "-p", multiple=True, help="Additional parameter overrides (param:value or param=value)")
-def run(**kwargs):
+app = typer.Typer()
+
+@app.command()
+def run(
+    nticks: int = typer.Option(365, help="Number of ticks to run the simulation"),
+    seed: int = typer.Option(20241107, help="Random seed"),
+    verbose: bool = typer.Option(False, help="Print verbose output"),
+    no_viz: bool = typer.Option(False, "--no-viz", help="Suppress validation visualizations"),
+    pdf: bool = typer.Option(False, help="Output visualization results as a PDF"),
+    output: Optional[str] = typer.Option(None, help="Output file for results"),
+    params: Optional[str] = typer.Option(None, help="JSON file with parameters"),
+    param: List[str] = typer.Option([], "-p", "--param", help="Additional parameter overrides (param:value or param=value)")
+):
     """
     Run the measles simulation model with the given parameters.
     This function initializes the model with the specified parameters, sets up the
@@ -79,6 +83,16 @@ def run(**kwargs):
         None
     """
 
+    kwargs = {
+        "nticks": nticks,
+        "seed": seed,
+        "verbose": verbose,
+        "no_viz": no_viz,
+        "pdf": pdf,
+        "output": output,
+        "params": params,
+        "param": param
+    }
     parameters = get_parameters(kwargs)
     scenario = get_scenario(parameters, parameters["verbose"])
     model = Model(scenario, parameters, name="northern nigeria measles")
@@ -111,5 +125,4 @@ def run(**kwargs):
 
 
 if __name__ == "__main__":
-    ctx = click.Context(run)
-    ctx.invoke(run, nticks=365, seed=20241107, viz=True,verbose=True, pdf=False)
+    app()

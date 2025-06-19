@@ -45,7 +45,6 @@ Model Class:
 """
 
 
-import click
 import numpy as np
 import pandas as pd
 from laser_core.laserframe import LaserFrame
@@ -83,7 +82,7 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
         """
         super().__init__(scenario, parameters, name)
 
-        click.echo(f"Initializing the {name} model with {len(scenario)} patches…")
+        print(f"Initializing the {name} model with {len(scenario)} patches…")
 
         self.initialize_patches(scenario, parameters)
         self.initialize_population(scenario, parameters)
@@ -167,7 +166,7 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
                     plt.show()
 
         else:
-            click.echo("Generating PDF output…")
+            print("Generating PDF output…")
             pdf_filename = f"{self.name} {self.tstart:%Y-%m-%d %H%M%S}.pdf"
             with PdfPages(pdf_filename) as pdf:
                 for instance in self.instances:
@@ -175,7 +174,7 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
                         pdf.savefig()
                         plt.close()
 
-            click.echo(f"PDF output saved to '{pdf_filename}'.")
+            print(f"PDF output saved to '{pdf_filename}'.")
 
         return
 

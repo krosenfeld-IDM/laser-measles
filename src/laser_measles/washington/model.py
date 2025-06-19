@@ -35,7 +35,8 @@ Usage:
         ``measles --nticks 1825 --seed 314159265 --pdf``
 """
 
-import click
+import typer
+from typing import List, Optional
 
 from laser_measles import Births
 from laser_measles import Incubation
@@ -51,16 +52,19 @@ from laser_measles.washington import get_scenario
 from laser_measles.utils import seed_infections_in_patch
 
 
-@click.command()
-@click.option("--nticks", default=365, help="Number of ticks to run the simulation")
-@click.option("--seed", default=20241107, help="Random seed")
-@click.option("--verbose", is_flag=True, help="Print verbose output")
-@click.option("--no-viz", is_flag=True, help="Suppress validation visualizations")
-@click.option("--pdf", is_flag=True, help="Output visualization results as a PDF")
-@click.option("--output", default=None, help="Output file for results")
-@click.option("--params", default=None, help="JSON file with parameters")
-@click.option("--param", "-p", multiple=True, help="Additional parameter overrides (param:value or param=value)")
-def run(**kwargs):
+app = typer.Typer()
+
+@app.command()
+def run(
+    nticks: int = typer.Option(365, help="Number of ticks to run the simulation"),
+    seed: int = typer.Option(20241107, help="Random seed"),
+    verbose: bool = typer.Option(False, help="Print verbose output"),
+    no_viz: bool = typer.Option(False, "--no-viz", help="Suppress validation visualizations"),
+    pdf: bool = typer.Option(False, help="Output visualization results as a PDF"),
+    output: Optional[str] = typer.Option(None, help="Output file for results"),
+    params: Optional[str] = typer.Option(None, help="JSON file with parameters"),
+    param: List[str] = typer.Option([], "-p", "--param", help="Additional parameter overrides (param:value or param=value)")
+):
     """
     Run the measles model simulation with the given parameters.
 
@@ -83,6 +87,16 @@ def run(**kwargs):
         None
     """
 
+    kwargs = {
+        "nticks": nticks,
+        "seed": seed,
+        "verbose": verbose,
+        "no_viz": no_viz,
+        "pdf": pdf,
+        "output": output,
+        "params": params,
+        "param": param
+    }
     parameters = get_parameters(kwargs)
     scenario = get_scenario(parameters, parameters["verbose"])
     model = Model(scenario, parameters)
@@ -113,5 +127,4 @@ def run(**kwargs):
 
 
 if __name__ == "__main__":
-    ctx = click.Context(run)
-    ctx.invoke(run, nticks=365, seed=20241107, verbose=True, pdf=False)
+    app()

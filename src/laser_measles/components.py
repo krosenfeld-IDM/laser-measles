@@ -5,36 +5,38 @@ This module provides utilities for creating and managing components in the laser
 The main feature is a decorator that makes it easier to create components with parameters.
 """
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Type, TypeVar
+from typing import Any
+from typing import TypeVar
 
 from laser_measles.base import BaseComponent
 
-T = TypeVar('T', bound=BaseComponent)
+T = TypeVar("T", bound=BaseComponent)
 
 
-def component(cls: Type[T] = None, **default_params):
+def component(cls: type[T] = None, **default_params):
     """
     Decorator for creating components with default parameters.
-    
+
     This decorator makes it easier to create components with parameters by:
     1. Allowing default parameters to be specified at class definition time
     2. Creating a factory function that can be used to create component instances
     3. Preserving type hints and docstrings
-    
+
     Parameters
     ----------
     cls : Type[BaseComponent], optional
         The component class to decorate. If None, returns a decorator function.
     **default_params
         Default parameters to use when creating the component instance.
-        
+
     Returns
     -------
     Union[Type[BaseComponent], Callable]
         If cls is provided, returns a factory function for creating component instances.
         If cls is None, returns a decorator function.
-        
+
     Examples
     --------
     Basic usage:
@@ -44,7 +46,7 @@ def component(cls: Type[T] = None, **default_params):
     ...         super().__init__(model, verbose)
     ...         self.param1 = param1
     ...         self.param2 = param2
-    
+
     With default parameters:
     >>> @component(param1=10, param2=20)
     ... class MyComponent(BaseComponent):
@@ -52,56 +54,57 @@ def component(cls: Type[T] = None, **default_params):
     ...         super().__init__(model, verbose)
     ...         self.param1 = param1
     ...         self.param2 = param2
-    
+
     Using the factory:
     >>> # Create with default parameters
     >>> MyComponent.create(model)
     >>> # Create with custom parameters
     >>> MyComponent.create(model, param1=100, param2=200)
     """
-    def decorator(component_cls: Type[T]) -> Type[T]:
+
+    def decorator(component_cls: type[T]) -> type[T]:
         # Store the default parameters
         component_cls._default_params = default_params
-        
+
         # Create a factory function for creating instances
         @wraps(component_cls)
         def create(model: Any, **kwargs) -> T:
             # Merge default parameters with provided parameters
             params = {**default_params, **kwargs}
             return component_cls(model, **params)
-        
+
         # Add the factory function to the class
         component_cls.create = staticmethod(create)
-        
+
         return component_cls
-    
+
     # If cls is provided, apply the decorator immediately
     if cls is not None:
         return decorator(cls)
-    
+
     # Otherwise, return the decorator function
     return decorator
 
 
-def create_component(component_class: Type[T], **kwargs) -> Callable[[Any, Any], T]:
+def create_component(component_class: type[T], **kwargs) -> Callable[[Any, Any], T]:
     """
     Helper function to create a component instance with parameters.
-    
-    This function creates a lambda function that will instantiate the component
+
+    This function creates a callable object that will instantiate the component
     with the given parameters when called by the model.
-    
+
     Parameters
     ----------
     component_class : Type[BaseComponent]
         The component class to instantiate
     **kwargs
         Parameters to pass to the component constructor
-        
+
     Returns
     -------
     Callable[[Any, Any], BaseComponent]
         A function that creates the component instance when called by the model
-        
+
     Examples
     --------
     >>> model.components = [
@@ -109,4 +112,18 @@ def create_component(component_class: Type[T], **kwargs) -> Callable[[Any, Any],
     ...     AnotherComponent,
     ... ]
     """
-    return lambda x, model: component_class(x, model, **kwargs) 
+    class ComponentFactory:
+        def __init__(self, component_class: type[T], **kwargs):
+            self.component_class = component_class
+            self.kwargs = kwargs
+            
+        def __call__(self, model: Any, verbose: bool = False) -> T:
+            return self.component_class(model, verbose, **self.kwargs)
+            
+        def __str__(self) -> str:
+            return f"<{self.component_class.__name__} factory>"
+            
+        def __repr__(self) -> str:
+            return f"<{self.component_class.__name__} factory>"
+    
+    return ComponentFactory(component_class, **kwargs)

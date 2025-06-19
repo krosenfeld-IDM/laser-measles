@@ -1,6 +1,15 @@
 """
 Base classes for laser-measles components and models
+
+This module contains the base classes for laser-measles components and models.
+
+The BaseComponent class is the base class for all laser-measles components.
+It provides a uniform interface for all components with a __call__(model, tick) method
+for execution during simulation loops.
+
+The BaseLaserModel class is the base class for all laser-measles models.
 """
+from __future__ import annotations
 
 from abc import ABC
 from abc import abstractmethod
@@ -17,36 +26,6 @@ from matplotlib.figure import Figure
 ScenarioType = TypeVar("ScenarioType")
 ParamsType = TypeVar("ParamsType")
 
-
-class BaseComponent:
-    """
-    Base class for all laser-measles components.
-
-    Components follow a uniform interface with __call__(model, tick) method
-    for execution during simulation loops.
-    """
-
-    def __init__(self, model, verbose: bool = False) -> None:
-        self.model = model
-        self.verbose = verbose
-        self.initialized = True
-
-    def __call__(self, model, tick: int) -> None:
-        """Execute component logic for a given simulation tick."""
-
-    def __str__(self) -> str:
-        """Return string representation using class docstring."""
-        # Use child class docstring if available, otherwise parent class
-        doc = self.__class__.__doc__ or BaseComponent.__doc__
-        return doc.strip() if doc else f"{self.__class__.__name__} component"
-
-    def plot(self, fig: Figure | None = None):
-        """
-        Placeholder for plotting method.
-        """
-        yield None
-
-
 class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
     """
     Base class for laser-measles simulation models.
@@ -55,30 +34,30 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
     timing, metrics collection, and execution loops.
     """
 
-    def __init__(self, scenario: ScenarioType, parameters: ParamsType, name: str) -> None:
+    def __init__(self, scenario: ScenarioType, params: ParamsType, name: str) -> None:
         """
         Initialize the model with common attributes.
 
         Args:
             scenario: Scenario data (type varies by model)
-            parameters: Model parameters (type varies by model)
+            params: Model parameters (type varies by model)
             name: Model name
         """
         self.tinit = datetime.now(tz=None)  # noqa: DTZ005
         print(f"{self.tinit}: Creating the {name} model…")
 
         self.scenario = scenario
-        self.params = parameters
+        self.params = params
         self.name = name
 
         # Initialize random number generator
-        seed_value = parameters.seed if hasattr(parameters, "seed") and parameters.seed is not None else self.tinit.microsecond
+        seed_value = params.seed if hasattr(params, "seed") and params.seed is not None else self.tinit.microsecond
         self.prng = seed_prng(seed_value)
 
         # Component management attributes
         self._components: list = []
         self.instances: list = []
-        self.phases: list = []
+        self.phases: list = [] # Called every tick
 
         # Metrics and timing
         self.metrics: list = []
@@ -100,12 +79,12 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         return self._components
 
     @components.setter
-    def components(self, components: list) -> None:
+    def components(self, components: list[type[BaseComponent]]) -> None:
         """
         Sets up the components of the model and initializes instances and phases.
 
         Args:
-            components: A list of component classes to be initialized and integrated into the model.
+            components (list): A list of component classes to be initialized and integrated into the model.
         """
         self._components = components
         self.instances = [self]
@@ -119,6 +98,29 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         # Allow subclasses to perform additional component setup
         self._setup_components()
 
+    def add_component(self, component: type[BaseComponent]) -> None:
+        """
+        Add the component class and an instance in model.instances.
+        Args:
+            component (BaseComponent): A component class to be initialized and integrated into the model.
+        """
+        self._components.append(component)
+        instance = component(self, getattr(self.params, "verbose", False))
+        self.instances.append(instance)
+        if "__call__" in dir(instance):
+            self.phases.append(instance)
+        # Allow subclasses to perform additional component setup
+        self._setup_components()
+
+    def append(self, component: type[BaseComponent]) -> None:
+        """
+        Add a single component to the model (alias for add_component).
+
+        Args:
+            component (BaseComponent): A component class to be initialized and integrated into the model.
+        """
+        self.add_component(component)
+
     def _setup_components(self) -> None:
         """
         Hook for subclasses to perform additional component setup.
@@ -131,8 +133,8 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         Updates the model for a given tick.
 
         Args:
-            model: The model instance
-            tick: The current time step or tick
+            model (BaseLaserModel): The model instance
+            tick (int): The current time step or tick
         """
 
     def run(self) -> None:
@@ -142,6 +144,9 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         # Check that there are some components to the model
         if len(self.components) == 0:
             raise RuntimeError("No components have been added to the model")
+
+        # Initialize all components
+        self.initialize()
 
         # Check that the model has been initialized
         nticks = getattr(self.params, "nticks", 0)
@@ -179,6 +184,18 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         # Update current date by time_step_days
         self.current_date += timedelta(days=self.params.time_step_days)
 
+    def initialize(self) -> None:
+        """
+        Initialize all components in the model.
+
+        This method calls initialize() on all component instances and sets
+        their initialized flag to True after successful initialization.
+        """
+        for instance in self.instances:
+            if hasattr(instance, 'initialize') and hasattr(instance, 'initialized'):
+                instance.initialize(self)
+                instance.initialized = True
+
     def _print_timing_summary(self) -> None:
         """
         Print timing summary for verbose mode.
@@ -187,7 +204,7 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
             import pandas as pd
 
             names = [type(phase).__name__ for phase in self.phases]
-            metrics = pd.DataFrame(self.metrics, columns=["tick", *list(names)])
+            metrics = pd.DataFrame(self.metrics, columns=["tick", *names])
             plot_columns = metrics.columns[1:]
             sum_columns = metrics[plot_columns].sum()
             width = max(map(len, sum_columns.index))
@@ -207,3 +224,36 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
                 print("Timing summary available but detailed formatting requires pandas")
             except ImportError:
                 print("Timing summary requires pandas or polars")
+
+class BaseComponent(ABC):
+    """
+    Base class for all laser-measles components.
+
+    Components follow a uniform interface with __call__(model, tick) method
+    for execution during simulation loops.
+    """
+
+    def __init__(self, model: BaseLaserModel, verbose: bool = False) -> None:
+        self.model = model
+        self.verbose = verbose
+        self.initialized = False
+
+    @abstractmethod
+    def initialize(self, model: BaseLaserModel) -> None:
+        """Initialize component based on other existing components."""
+
+    @abstractmethod
+    def __call__(self, model, tick: int) -> None:
+        """Execute component logic for a given simulation tick."""
+
+    def __str__(self) -> str:
+        """Return string representation using class docstring."""
+        # Use child class docstring if available, otherwise parent class
+        doc = self.__class__.__doc__ or BaseComponent.__doc__
+        return doc.strip() if doc else f"{self.__class__.__name__} component"
+
+    def plot(self, fig: Figure | None = None):
+        """
+        Placeholder for plotting method.
+        """
+        yield None

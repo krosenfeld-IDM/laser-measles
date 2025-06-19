@@ -3,10 +3,8 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from laser_measles.base import BaseComponent
-
-
-def cast_type(a, dtype):
-    return a.astype(dtype) if a.dtype != dtype else a
+from laser_measles.base import BaseLaserModel
+from laser_measles.utils import cast_type
 
 
 class ImportationPressureParams(BaseModel):
@@ -76,3 +74,6 @@ class ImportationPressureProcess(BaseComponent):
         # update states
         states[0] -= importation_pressure
         states[1] += importation_pressure  # Move to infected state
+
+    def initialize(self, model: BaseLaserModel) -> None:
+        pass

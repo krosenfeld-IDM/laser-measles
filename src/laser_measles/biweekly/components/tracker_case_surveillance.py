@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from laser_measles.base import BaseComponent
+from laser_measles.base import BaseLaserModel
 
 
 def cast_type(a, dtype):
@@ -155,6 +156,9 @@ class CaseSurveillanceTracker(BaseComponent):
 
         # Create DataFrame
         return pl.DataFrame(data)
+    
+    def initialize(self, model: BaseLaserModel) -> None:
+        pass
 
     def plot(self, fig: Figure = None):
         """Create a heatmap visualization of log(cases+1) over time.

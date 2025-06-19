@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from laser_measles.base import BaseComponent
+from laser_measles.base import BaseLaserModel
 from laser_measles.utils import cast_type
 
 
@@ -126,6 +127,9 @@ class SIACalendarProcess(BaseComponent):
                         print(
                             f"Date {current_date}: Implementing SIA for {group_key} (scheduled for {scheduled_date}) - vaccinated {total_vaccinated} individuals"
                         )
+
+    def initialize(self, model: BaseLaserModel) -> None:
+        pass
 
     def get_sia_schedule(self) -> pl.DataFrame:
         """

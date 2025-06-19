@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from laser_measles.base import BaseComponent
+from laser_measles.base import BaseLaserModel
 
 
 class StateTracker(BaseComponent):
@@ -30,6 +31,9 @@ class StateTracker(BaseComponent):
     def __call__(self, model, tick: int) -> None:
         # model.nodes.states is (num_states, num_nodes), we sum over the nodes
         self.state_tracker[:, tick] = model.nodes.states.sum(axis=1)
+
+    def initialize(self, model: BaseLaserModel) -> None:
+        pass
 
     def plot(self, fig: Figure = None):
         """

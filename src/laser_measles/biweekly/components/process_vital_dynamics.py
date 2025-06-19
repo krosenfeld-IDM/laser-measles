@@ -2,6 +2,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from laser_measles.base import BaseComponent
+from laser_measles.base import BaseLaserModel
 from laser_measles.utils import cast_type
 
 
@@ -72,3 +73,6 @@ class VitalDynamicsProcess(BaseComponent):
 
         # make sure that all states >= 0
         np.maximum(states, 0, out=states)
+
+    def initialize(self, model: BaseLaserModel) -> None:
+        pass

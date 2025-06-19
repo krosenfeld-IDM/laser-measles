@@ -32,11 +32,13 @@ Model Class:
 """
 
 
+import numpy as np
 from laser_core.laserframe import LaserFrame
 
 from laser_measles.base import BaseLaserModel
 from laser_measles.biweekly.base import BaseScenario
 from laser_measles.biweekly.params import BiweeklyParams
+from laser_measles.utils import cast_type
 
 
 class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
@@ -80,8 +82,11 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
         num_nodes = len(scenario)
         self.nodes = LaserFrame(num_nodes)
 
-        # create the state vector for each of the nodes (3, num_nodes)
+        # Create the state vector for each of the nodes (3, num_nodes)
         self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
+
+        # Start with totally susceptible population
+        self.nodes.states[0, :] = scenario["pop"]
 
         return
 
@@ -98,6 +103,19 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
 
             None
         """
+        return
+
+    def infect(self, indices: int | np.ndarray, num_infected: int | np.ndarray) -> None:
+        """
+        Infects the given nodes with the given number of infected individuals.
+
+        Args:
+            indices (int | np.ndarray): The indices of the nodes to infect.
+            num_infected (int | np.ndarray): The number of infected individuals to infect.
+        """
+
+        self.nodes.states[1, indices] += cast_type(num_infected, self.nodes.states.dtype)
+        self.nodes.states[0, indices] -= cast_type(num_infected, self.nodes.states.dtype)
         return
 
 

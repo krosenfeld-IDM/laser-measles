@@ -9,6 +9,7 @@ and visualization of the model's behavior over time.
 import numpy as np
 
 from laser_measles.base import BaseComponent
+from laser_measles.base import BaseLaserModel
 
 
 class FadeOutTracker(BaseComponent):
@@ -33,3 +34,6 @@ class FadeOutTracker(BaseComponent):
 
     def __call__(self, model, tick: int) -> None:
         self.fade_out_tracker[tick] = np.sum(model.nodes.states[1, :] == 0)
+
+    def initialize(self, model: BaseLaserModel) -> None:
+        pass

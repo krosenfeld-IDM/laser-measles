@@ -59,7 +59,7 @@ class ImportationPressureProcess(BaseComponent):
             return
 
         # state counts
-        states = model.nodes.states
+        states = model.patches.states
 
         # population
         population = states.sum(axis=0)

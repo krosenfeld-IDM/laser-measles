@@ -56,7 +56,7 @@ class VitalDynamicsProcess(BaseComponent):
 
     def __call__(self, model, tick: int) -> None:
         # state counts
-        states = model.nodes.states
+        states = model.patches.states
 
         # Vital dynamics
         population = states.sum(axis=0)

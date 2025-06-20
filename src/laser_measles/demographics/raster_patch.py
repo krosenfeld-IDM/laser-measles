@@ -170,12 +170,12 @@ class RasterPatchGenerator:
                         weight_summary_func=np.mean,
                     )
 
-                    # remove the rasters
-                    new_weight_raster_file.unlink()
-                    new_values_raster_file.unlink()
+                # remove the rasters
+                new_weight_raster_file.unlink()
+                new_values_raster_file.unlink()
 
-                    # Store data with timestamp
-                    c[cache_key] = {"data": mcv_dict, "timestamp": datetime.now(UTC).timestamp()}
+                # Store data with timestamp
+                c[cache_key] = {"data": mcv_dict, "timestamp": datetime.now(UTC).timestamp()}
 
         mcv_dict = c[cache_key]["data"]
         new_dict = {"dotname": [], "lat": [], "lon": [], "mcv1": []}

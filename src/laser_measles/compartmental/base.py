@@ -14,7 +14,7 @@ class BaseScenarioSchema(BaseModel):
     pop: list[int]  # population
     lat: list[float]  # latitude
     lon: list[float]  # longitude
-    id: list[str | int]  # id of the patches
+    ids: list[str | int]  # ids of the nodes
     mcv1: list[float]  # MCV1 coverages (as percentages, will be divided by 100)
 
 
@@ -25,7 +25,7 @@ class BaseScenario:
 
     def _validate(self, df: pl.DataFrame):
         # Validate required columns exist
-        required_columns = ["pop", "lat", "lon", "id", "mcv1"]
+        required_columns = ["pop", "lat", "lon", "ids", "mcv1"]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns: {missing_columns}")
@@ -51,8 +51,8 @@ class BaseScenario:
                 raise ValueError("Column 'mcv1' must be between 0 and 1")
 
             # Validate ids are either string or integer
-            if not (df["id"].dtype == pl.String or df["id"].dtype == pl.Int64):
-                raise ValueError("Column 'id' must be either string or integer type")
+            if not (df["ids"].dtype == pl.String or df["ids"].dtype == pl.Int64):
+                raise ValueError("Column 'ids' must be either string or integer type")
 
             # Validate no null values
             null_counts = df.null_count()

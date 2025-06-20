@@ -61,9 +61,9 @@ class SIACalendarProcess(BaseComponent):
         # Extract node IDs and create mapping for filtered nodes
         self.node_mapping = {}
 
-        for node_idx, node_id in enumerate(model.scenario["ids"]):
+        for node_idx, node_id in enumerate(model.scenario["id"]):
             if self.params.filter_fn(node_id):
-                # Create geographic grouping key
+                # Create geographic grouping keynode
                 group_key = ":".join(node_id.split(":")[: self.params.aggregation_level])
                 if group_key not in self.node_mapping:
                     self.node_mapping[group_key] = []
@@ -87,7 +87,7 @@ class SIACalendarProcess(BaseComponent):
 
     def __call__(self, model, tick: int) -> None:
         # Get current state counts
-        states = model.nodes.states
+        states = model.patches.states
 
         # Check for SIAs scheduled for dates up to and including the current date
         current_date = model.current_date

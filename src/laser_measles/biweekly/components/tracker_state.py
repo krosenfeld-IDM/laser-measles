@@ -58,7 +58,7 @@ class StateTracker(BasePhase):
         fig = plt.figure(figsize=(12, 4 * n_states), dpi=128) if fig is None else fig
         fig.suptitle("State Counts Over Time")
 
-        time = np.arange(self.model.params.nticks)
+        time = np.arange(self.model.params.num_ticks)
         for i, state in enumerate(self.model.params.states):
             ax = plt.subplot(n_states, 1, i + 1)
             ax.plot(time, self.state_tracker[i], label=state)

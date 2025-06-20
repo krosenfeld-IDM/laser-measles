@@ -5,7 +5,7 @@ import polars as pl
 from pydantic import BaseModel
 from pydantic import Field
 
-from laser_measles.base import BaseComponent
+from laser_measles.base import BasePhase
 from laser_measles.base import BaseLaserModel
 from laser_measles.utils import cast_type
 
@@ -23,9 +23,9 @@ class SIACalendarParams(BaseModel):
     group_column: str = Field("id", description="Name of the column containing group identifiers")
 
 
-class SIACalendarProcess(BaseComponent):
+class SIACalendarProcess(BasePhase):
     """
-    Component for implementing Supplementary Immunization Activities (SIAs) based on a calendar schedule.
+    Phase for implementing Supplementary Immunization Activities (SIAs) based on a calendar schedule.
 
     This component:
     1. Groups nodes by geographic level using the same aggregation schema as CaseSurveillanceTracker

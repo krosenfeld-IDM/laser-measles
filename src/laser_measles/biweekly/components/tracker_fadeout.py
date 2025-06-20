@@ -8,12 +8,12 @@ and visualization of the model's behavior over time.
 """
 import numpy as np
 
-from laser_measles.base import BaseComponent
+from laser_measles.base import BasePhase
 from laser_measles.base import BaseLaserModel
 
 
-class FadeOutTracker(BaseComponent):
-    """A component that tracks and records the number of nodes experiencing fade-outs over time.
+class FadeOutTracker(BasePhase):
+    """A phase that tracks and records the number of nodes experiencing fade-outs over time.
 
     This component maintains a time series of fade-out counts by monitoring the number of nodes
     that have transitioned to state 0 at each simulation tick. The data can be used for
@@ -30,10 +30,10 @@ class FadeOutTracker(BaseComponent):
 
     def __init__(self, model, verbose: bool = False) -> None:
         super().__init__(model, verbose)
-        self.fade_out_tracker = np.zeros(model.params.nticks)
+        self.fade_out_tracker = np.zeros(model.params.num_ticks)
 
     def __call__(self, model, tick: int) -> None:
-        self.fade_out_tracker[tick] = np.sum(model.nodes.states[1, :] == 0)
+        self.fade_out_tracker[tick] = np.sum(model.patches.states[1, :] == 0)
 
     def initialize(self, model: BaseLaserModel) -> None:
         pass

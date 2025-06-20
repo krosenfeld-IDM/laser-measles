@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, Field
 
-from laser_measles.base import BaseComponent
+from laser_measles.base import BasePhase
 from laser_measles.base import BaseLaserModel
 from laser_measles.utils import cast_type
 
@@ -21,11 +21,11 @@ class VitalDynamicsParams(BaseModel):
     )
 
 
-class VitalDynamicsProcess(BaseComponent):
+class VitalDynamicsProcess(BasePhase):
     """
-    Component for simulating the vital dynamics in the model.
+    Phase for simulating the vital dynamics in the model.
 
-    This class handles the simulation of births and deaths in the population model.
+    This phase handles the simulation of births and deaths in the population model.
     It processes:
     - Births: Both vaccinated and unvaccinated births based on crude birth rate
     - Deaths: Based on crude death rate

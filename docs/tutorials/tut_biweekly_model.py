@@ -142,14 +142,14 @@ model = BiweeklyModel(scenario, params, name="biweekly_tutorial")
 for i in range(n_nodes):
     pop = populations[i]
     # Start with 95% susceptible, 0% infected, 5% recovered
-    model.nodes.states[0, i] = int(pop * 0.95)  # Susceptible
-    model.nodes.states[1, i] = 0                # Infected
-    model.nodes.states[2, i] = int(pop * 0.05)  # Recovered
+    model.patches.states[0, i] = int(pop * 0.95)  # Susceptible
+    model.patches.states[1, i] = 0                # Infected
+    model.patches.states[2, i] = int(pop * 0.05)  # Recovered
 
 print("Initial state distribution:")
-print(f"Total Susceptible: {model.nodes.states[0].sum():,}")
-print(f"Total Infected: {model.nodes.states[1].sum():,}")
-print(f"Total Recovered: {model.nodes.states[2].sum():,}")
+print(f"Total Susceptible: {model.patches.states[0].sum():,}")
+print(f"Total Infected: {model.patches.states[1].sum():,}")
+print(f"Total Recovered: {model.patches.states[2].sum():,}")
 
 # %% [markdown]
 # ## Add Model Components
@@ -187,14 +187,14 @@ initial_infections_per_node = 50
 
 for i in range(3):  # First 3 nodes
     # Move individuals from Susceptible to Infected
-    infections = min(initial_infections_per_node, model.nodes.states[0, i])
-    model.nodes.states[0, i] -= infections  # Remove from Susceptible
-    model.nodes.states[1, i] += infections  # Add to Infected
+    infections = min(initial_infections_per_node, model.patches.states[0, i])
+    model.patches.states[0, i] -= infections  # Remove from Susceptible
+    model.patches.states[1, i] += infections  # Add to Infected
 
 print("Seeded initial infections:")
-print(f"Total Susceptible: {model.nodes.states[0].sum():,}")
-print(f"Total Infected: {model.nodes.states[1].sum():,}")
-print(f"Total Recovered: {model.nodes.states[2].sum():,}")
+print(f"Total Susceptible: {model.patches.states[0].sum():,}")
+print(f"Total Infected: {model.patches.states[1].sum():,}")
+print(f"Total Recovered: {model.patches.states[2].sum():,}")
 
 # %% [markdown]
 # ## Run the Simulation
@@ -208,10 +208,10 @@ print("Simulation completed!")
 
 # Print final state summary
 print("\nFinal state distribution:")
-print(f"Total Susceptible: {model.nodes.states[0].sum():,}")
-print(f"Total Infected: {model.nodes.states[1].sum():,}")
-print(f"Total Recovered: {model.nodes.states[2].sum():,}")
-print(f"Total Population: {model.nodes.states.sum():,}")
+print(f"Total Susceptible: {model.patches.states[0].sum():,}")
+print(f"Total Infected: {model.patches.states[1].sum():,}")
+print(f"Total Recovered: {model.patches.states[2].sum():,}")
+print(f"Total Population: {model.patches.states.sum():,}")
 
 # %% [markdown]
 # ## Visualize Results
@@ -256,7 +256,7 @@ ax2.grid(True, alpha=0.3)
 
 # Plot 3: Attack rate by node (final % infected)
 ax3 = plt.subplot(2, 3, 3)
-final_recovered = model.nodes.states[2] + model.nodes.states[1]  # R + I
+final_recovered = model.patches.states[2] + model.patches.states[1]  # R + I
 initial_population = scenario_data['pop'].to_numpy()
 attack_rates = (final_recovered / initial_population) * 100
 bars = ax3.bar(range(n_nodes), attack_rates, color='coral')
@@ -321,11 +321,11 @@ print("=== SIMULATION SUMMARY ===")
 print(f"Simulation period: {years} years ({nticks} bi-weekly time steps)")
 print(f"Number of nodes: {n_nodes}")
 print(f"Initial population: {initial_population.sum():,}")
-print(f"Final population: {model.nodes.states.sum():,}")
+print(f"Final population: {model.patches.states.sum():,}")
 
 print("\n=== EPIDEMIC METRICS ===")
-total_final_recovered = model.nodes.states[2].sum()
-total_final_infected = model.nodes.states[1].sum()
+total_final_recovered = model.patches.states[2].sum()
+total_final_infected = model.patches.states[1].sum()
 total_cases = total_final_recovered + total_final_infected
 overall_attack_rate = (total_cases / initial_population.sum()) * 100
 

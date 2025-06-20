@@ -87,8 +87,8 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
             components (list): A list of component classes to be initialized and integrated into the model.
         """
         self._components = components
-        self.instances = [self]
-        self.phases = [self]
+        self.instances = []
+        self.phases = []
         for component in components:
             instance = component(self, getattr(self.params, "verbose", False))
             self.instances.append(instance)
@@ -148,14 +148,14 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         # Initialize all components
         self.initialize()
 
-        # Check that the model has been initialized
-        nticks = getattr(self.params, "nticks", 0)
+        # TODO: Check that the model has been initialized
+        num_ticks = self.params.num_ticks
         self.tstart = datetime.now(tz=None)  # noqa: DTZ005
-        print(f"{self.tstart}: Running the {self.name} model for {nticks} ticks…")
+        print(f"{self.tstart}: Running the {self.name} model for {num_ticks} ticks…")
 
         self.metrics = []
-        with alive_progress.alive_bar(nticks) as bar:
-            for tick in range(nticks):
+        with alive_progress.alive_bar(num_ticks) as bar:
+            for tick in range(num_ticks):
                 self._execute_tick(tick)
                 bar()
 
@@ -183,6 +183,15 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
 
         # Update current date by time_step_days
         self.current_date += timedelta(days=self.params.time_step_days)
+
+    def time_elapsed(self, units: str = "days") -> int:
+        """
+        Return time elapsed since the start of the model.
+        """
+        if units == "days":
+            return (self.current_date - self.start_time).days
+        else:
+            raise ValueError(f"Invalid time units: {units}")
 
     def initialize(self) -> None:
         """
@@ -241,10 +250,7 @@ class BaseComponent(ABC):
     @abstractmethod
     def initialize(self, model: BaseLaserModel) -> None:
         """Initialize component based on other existing components."""
-
-    @abstractmethod
-    def __call__(self, model, tick: int) -> None:
-        """Execute component logic for a given simulation tick."""
+        raise NotImplementedError("Subclasses must implement this method")
 
     def __str__(self) -> str:
         """Return string representation using class docstring."""
@@ -257,3 +263,14 @@ class BaseComponent(ABC):
         Placeholder for plotting method.
         """
         yield None
+
+class BasePhase(BaseComponent):
+    """
+    Base class for all laser-measles phases.
+
+    Phases are components that are called every tick and include a __call__ method.
+    """
+
+    @abstractmethod
+    def __call__(self, model, tick: int) -> None:
+        """Execute component logic for a given simulation tick."""

@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
-from laser_measles.base import BaseComponent
+from laser_measles.base import BasePhase
 from laser_measles.base import BaseLaserModel
 
 
-class StateTracker(BaseComponent):
+class StateTracker(BasePhase):
     """
     Component for tracking the number in each state for each time tick.
 
@@ -21,7 +21,7 @@ class StateTracker(BaseComponent):
     def __init__(self, model, verbose: bool = False) -> None:
         super().__init__(model, verbose)
         self.state_tracker = np.zeros(
-            (len(model.params.states), model.params.nticks), dtype=model.nodes.states.dtype
+            (len(model.params.states), model.params.num_ticks), dtype=model.patches.states.dtype
         )  # (num_states e.g., SIR, nticks)
 
         # Dynamically create properties for each state
@@ -30,7 +30,7 @@ class StateTracker(BaseComponent):
 
     def __call__(self, model, tick: int) -> None:
         # model.nodes.states is (num_states, num_nodes), we sum over the nodes
-        self.state_tracker[:, tick] = model.nodes.states.sum(axis=1)
+        self.state_tracker[:, tick] = model.patches.states.sum(axis=1)
 
     def initialize(self, model: BaseLaserModel) -> None:
         pass

@@ -2,9 +2,9 @@
 
 __all__ = []
 
-from . import biweekly
-from . import demographics
-from . import generic
+from . import biweekly  # noqa: F401
+from . import demographics  # noqa: F401
+from . import generic  # noqa: F401
 
 __all__.extend(
     [

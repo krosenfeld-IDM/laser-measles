@@ -78,15 +78,14 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
         """
         super().__init__(scenario, params, name)
 
-        # Add nodes to the model
-        num_nodes = len(scenario)
-        self.nodes = LaserFrame(num_nodes)
+        # Add patches to the model
+        self.patches = LaserFrame(capacity=len(scenario))
 
-        # Create the state vector for each of the nodes (3, num_nodes)
-        self.nodes.add_vector_property("states", len(self.params.states))  # S, I, R
+        # Create the state vector for each of the patches (3, num_patches)
+        self.patches.add_vector_property("states", len(self.params.states))  # S, I, R
 
         # Start with totally susceptible population
-        self.nodes.states[0, :] = scenario["pop"]
+        self.patches.states[0, :] = scenario["pop"]
 
         return
 
@@ -114,8 +113,8 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
             num_infected (int | np.ndarray): The number of infected individuals to infect.
         """
 
-        self.nodes.states[1, indices] += cast_type(num_infected, self.nodes.states.dtype)
-        self.nodes.states[0, indices] -= cast_type(num_infected, self.nodes.states.dtype)
+        self.patches.states[1, indices] += cast_type(num_infected, self.patches.states.dtype)
+        self.patches.states[0, indices] -= cast_type(num_infected, self.patches.states.dtype)
         return
 
 

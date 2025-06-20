@@ -105,15 +105,15 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
 
     def initialize_population(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
         capacity = np.sum(self.patches.populations)
-        self.population = LaserFrame(capacity=int(capacity), initial_count=0)
-        self.population.add_scalar_property("nodeid", dtype=np.uint16)
-        self.population.add_scalar_property("state", dtype=np.uint8, default=0)
+        self.people = LaserFrame(capacity=int(capacity), initial_count=0)
+        self.people.add_scalar_property("nodeid", dtype=np.uint16)
+        self.people.add_scalar_property("state", dtype=np.uint8, default=0)
         # self.patches.add_vector_property("exposed", length=self.params.nticks, dtype=np.uint32)
         # self.patches.add_vector_property("recovered", length=self.params.nticks, dtype=np.uint32)
 
         for nodeid, count in enumerate(self.patches.populations):
-            first, last = self.population.add(count)
-            self.population.nodeid[first:last] = nodeid
+            first, last = self.people.add(count)
+            self.people.nodeid[first:last] = nodeid
 
         return
 
@@ -217,7 +217,7 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
         _fig.suptitle("Distribution of Day of Birth for Initial Population")
 
         count = self.patches.populations[0, :].sum()  # just the initial population
-        dobs = self.population.dob[0:count]
+        dobs = self.people.dob[0:count]
         plt.hist(dobs, bins=100)
         plt.xlabel("Day of Birth")
 

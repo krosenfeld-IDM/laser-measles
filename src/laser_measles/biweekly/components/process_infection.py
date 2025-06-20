@@ -2,7 +2,7 @@ import numpy as np
 from pydantic import BaseModel
 from pydantic import Field
 
-from laser_measles.base import BaseComponent, BaseLaserModel
+from laser_measles.base import BasePhase, BaseLaserModel
 from laser_measles.biweekly.mixing import init_gravity_diffusion
 from laser_measles.utils import cast_type
 
@@ -10,13 +10,17 @@ from laser_measles.utils import cast_type
 class InfectionParams(BaseModel):
     """Parameters specific to the infection process component."""
 
-    beta: float = Field(1, description="Base transmission rate", gt=0.0) # beta = R0 / (mean infectious period) 
-    seasonality: float = Field(0.06, description="Seasonality factor", ge=0.0)
+    beta: float = Field(1, description="Base transmission rate (infections per day)", gt=0.0) # beta = R0 / (mean infectious period)
+    seasonality: float = Field(0.0, description="Seasonality factor, default is no seasonality", ge=0.0)
     season_start: int = Field(0, description="Season start tick (0-25)", ge=0, le=25)
     distance_exponent: float = Field(1.5, description="Distance exponent", ge=0.0)
     mixing_scale: float = Field(0.001, description="Mixing scale", ge=0.0)
 
-class InfectionProcess(BaseComponent):
+    @property
+    def beta_per_tick(self) -> float:
+        return (self.beta * 365) / 26
+
+class InfectionProcess(BasePhase):
     """
     Component for simulating the spread of infection in the model.
 
@@ -61,22 +65,20 @@ class InfectionProcess(BaseComponent):
 
     def __call__(self, model: BaseLaserModel, tick: int) -> None:
         # state counts
-        states = model.nodes.states
+        states = model.patches.states
 
-        # calculate the expected number of new infections
-        # beta * (1 + seasonality * sin(2π(t-t0)/26)) * mixing * I
-        expected = (
-            self.params.beta
-            * (1 + self.params.seasonality * np.sin(2 * np.pi * (tick - self.params.season_start) / 26.0))
-            * np.matmul(self.mixing, states[1])
+        # prevalence in each patch
+        prevalence = states[1] / states.sum(axis=0)          # I_j / N_j
+
+        lambda_i = (
+            self.params.beta_per_tick
+            * (1 + self.params.seasonality *
+                np.sin(2 * np.pi * (tick - self.params.season_start) / 26.0))
+            * np.matmul(self.mixing, prevalence)              # M @ (I_j / N_j)
         )
 
-        # probability of infection = 1 - exp(-expected/total_population)
-        denominator = states.sum(axis=0)
-        prob = np.where(denominator == 0, 0, 1 - np.exp(-expected / denominator))
-
-        # sample from binomial distribution to get actual new infections
-        dI = cast_type(np.random.binomial(n=states[0], p=prob), states.dtype)
+        prob = 1 - np.exp(-lambda_i)                         # already per-susceptible
+        dI   = np.random.binomial(states[0], prob).astype(states.dtype)
 
         # move all currently infected to recovered (using configurable recovery period)
         states[2] += states[1]

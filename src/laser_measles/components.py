@@ -10,6 +10,8 @@ from functools import wraps
 from typing import Any
 from typing import TypeVar
 
+from pydantic import BaseModel
+
 from laser_measles.base import BaseComponent
 
 T = TypeVar("T", bound=BaseComponent)
@@ -86,7 +88,7 @@ def component(cls: type[T] = None, **default_params):
     return decorator
 
 
-def create_component(component_class: type[T], **kwargs) -> Callable[[Any, Any], T]:
+def create_component(component_class: type[T], params: BaseModel | None = None) -> Callable[[Any, Any], T]:
     """
     Helper function to create a component instance with parameters.
 
@@ -113,12 +115,13 @@ def create_component(component_class: type[T], **kwargs) -> Callable[[Any, Any],
     ... ]
     """
     class ComponentFactory:
-        def __init__(self, component_class: type[T], **kwargs):
+        def __init__(self, component_class: type[T], params: BaseModel | None = None):
             self.component_class = component_class
-            self.kwargs = kwargs
+            if params is not None:
+                self.params = params
             
         def __call__(self, model: Any, verbose: bool = False) -> T:
-            return self.component_class(model, verbose, **self.kwargs)
+            return self.component_class(model, params=self.params, verbose=verbose)
             
         def __str__(self) -> str:
             return f"<{self.component_class.__name__} factory>"
@@ -126,4 +129,4 @@ def create_component(component_class: type[T], **kwargs) -> Callable[[Any, Any],
         def __repr__(self) -> str:
             return f"<{self.component_class.__name__} factory>"
     
-    return ComponentFactory(component_class, **kwargs)
+    return ComponentFactory(component_class, params)

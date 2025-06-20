@@ -90,7 +90,7 @@ model_params = GenericParams(nticks=parameters.nticks, start_time=parameters.sta
 model = Model(scenario, model_params, name="Tutorial_Generic_Model")
 
 print(f"Model initialized with {len(model.patches)} patches")
-print(f"Total population capacity: {model.population.capacity:,}")
+print(f"Total population capacity: {model.people.capacity:,}")
 
 # %% [markdown]
 # ## Step 4: Configure Model Components
@@ -139,9 +139,9 @@ initial_susceptible_fraction = 1 - herd_immunity_threshold + 0.05  # Slightly ab
 
 # Randomly assign susceptibility
 np.random.seed(seed)
-n_susceptible = int(model.population.capacity * initial_susceptible_fraction)
+n_susceptible = int(model.people.capacity * initial_susceptible_fraction)
 susceptible_indices = np.random.choice(
-    model.population.capacity, 
+    model.people.capacity, 
     size=n_susceptible, 
     replace=False
 )
@@ -153,8 +153,8 @@ print(f"Initial susceptible population: {n_susceptible:,}")
 
 # Add state property for disease states (S=0, E=1, I=2, R=3)
 # model.population.add_scalar_property("state", dtype=np.uint8, default=3)  # Start as recovered
-model.population.state[:] = 3 # Start as recovered
-model.population.state[susceptible_indices] = 0  # Set susceptible individuals to S
+model.people.state[:] = 3 # Start as recovered
+model.people.state[susceptible_indices] = 0  # Set susceptible individuals to S
 
 print(f"Initial conditions:")
 print(f"Initial population: {model.patches.populations.sum():,}")
@@ -162,14 +162,14 @@ print(f"Initial population: {model.patches.populations.sum():,}")
 
 # Seed initial infections in the largest patch
 largest_patch_id = scenario['population'].idxmax()
-patch_population_mask = model.population.nodeid == largest_patch_id
-patch_susceptible_mask = (model.population.state == 0) & patch_population_mask
+patch_population_mask = model.people.nodeid == largest_patch_id
+patch_susceptible_mask = (model.people.state == 0) & patch_population_mask
 
 # Infect 10 individuals in the largest patch
 patch_susceptible_indices = np.where(patch_susceptible_mask)[0]
 if len(patch_susceptible_indices) >= 10:
     initial_infected_indices = np.random.choice(patch_susceptible_indices, size=10, replace=False)
-    model.population.state[initial_infected_indices] = 2  # Set to infectious
+    model.people.state[initial_infected_indices] = 2  # Set to infectious
     
     print(f"  Seeded 10 initial infections in {scenario.loc[largest_patch_id, 'name']}")
 

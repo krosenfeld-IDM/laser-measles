@@ -234,6 +234,88 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
             except ImportError:
                 print("Timing summary requires pandas or polars")
 
+    def cleanup(self) -> None:
+        """
+        Clean up model resources to prevent memory leaks.
+        
+        This method should be called when the model is no longer needed
+        to free up memory from LaserFrame objects and other large data structures.
+        """
+        try:
+            # Clear LaserFrame objects
+            if hasattr(self, 'patches') and self.patches is not None:
+                # Clear all properties from the LaserFrame
+                if hasattr(self.patches, '_properties'):
+                    for prop_name in list(self.patches._properties.keys()):
+                        setattr(self.patches, prop_name, None)
+                    self.patches._properties.clear()
+                
+                # Reset LaserFrame capacity and count
+                if hasattr(self.patches, '_capacity'):
+                    self.patches._capacity = 0
+                if hasattr(self.patches, '_count'):
+                    self.patches._count = 0
+                    
+                self.patches = None
+
+            if hasattr(self, 'people') and self.people is not None:
+                # Clear all properties from the LaserFrame
+                if hasattr(self.people, '_properties'):
+                    for prop_name in list(self.people._properties.keys()):
+                        setattr(self.people, prop_name, None)
+                    self.people._properties.clear()
+                
+                # Reset LaserFrame capacity and count
+                if hasattr(self.people, '_capacity'):
+                    self.people._capacity = 0
+                if hasattr(self.people, '_count'):
+                    self.people._count = 0
+                    
+                self.people = None
+
+            # Clear component instances and their references
+            if hasattr(self, 'instances'):
+                for instance in self.instances:
+                    # Clear any LaserFrame references in components
+                    if hasattr(instance, 'model'):
+                        instance.model = None
+                    # Clear any large data structures in components
+                    for attr_name in dir(instance):
+                        if not attr_name.startswith('_') and attr_name not in ['initialized', 'verbose']:
+                            attr_value = getattr(instance, attr_name, None)
+                            if hasattr(attr_value, '__len__') and not callable(attr_value):
+                                try:
+                                    setattr(instance, attr_name, None)
+                                except (AttributeError, TypeError):
+                                    pass  # Skip if attribute is read-only
+                self.instances.clear()
+
+            # Clear phases and components
+            if hasattr(self, 'phases'):
+                self.phases.clear()
+            if hasattr(self, '_components'):
+                self._components.clear()
+
+            # Clear metrics and other large data structures
+            if hasattr(self, 'metrics'):
+                self.metrics.clear()
+
+            # Clear scenario and params references to large data
+            if hasattr(self, 'scenario'):
+                self.scenario = None
+            if hasattr(self, 'params'):
+                # Clear any large data structures in params
+                if hasattr(self.params, 'mixing') and self.params.mixing is not None:
+                    self.params.mixing = None
+
+            # Clear random number generator
+            if hasattr(self, 'prng'):
+                self.prng = None
+
+        except Exception as e:
+            # Don't let cleanup errors crash the program
+            print(f"Warning: Error during model cleanup: {e}")
+
 class BaseComponent(ABC):
     """
     Base class for all laser-measles components.

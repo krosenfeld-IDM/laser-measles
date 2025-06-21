@@ -2,6 +2,7 @@ import numpy as np
 import polars as pl
 import scipy as sp
 from laser_core import PropertySet
+import pytest
 
 import laser_measles as lm
 from laser_measles.base import BasePhase
@@ -92,8 +93,9 @@ class Compartmental2SI(BasePhase):
     def initialize(self, model: CompartmentalModel) -> None:
         pass
 
-
-def test_no_vital_dynamics(model_type="biweekly"):
+@pytest.mark.slow
+@pytest.mark.parametrize("model_type", ["compartmental", "biweekly"])
+def test_no_vital_dynamics(model_type):
     """
     Test logistic growth for SI model with no vital dynamics.
     https://github.com/InstituteforDiseaseModeling/laser-generic/blob/main/notebooks/01_SI_nobirths_logistic_growth.ipynb
@@ -159,8 +161,11 @@ def test_no_vital_dynamics(model_type="biweekly"):
 
     rel_error = (t_2_simulated - t_2_theory) / t_2_theory
 
+    # Different error tolerances for different model types
     if model_type == "compartmental":
         assert rel_error < 0.15, f"Relative error: {rel_error} (max 0.15)"
+    elif model_type == "biweekly":
+        assert rel_error < 0.25, f"Relative error: {rel_error} (max 0.25)"
 
     print(f"t_2_theory: {t_2_theory}, t_2_sim: {t_2_simulated}")
     return (t_2_simulated - t_2_theory) / t_2_theory
@@ -168,8 +173,8 @@ def test_no_vital_dynamics(model_type="biweekly"):
 
 if __name__ == "__main__":
     rel_errors = []
-    for i in range(500):
-        rel_error = test_no_vital_dynamics()
+    for i in range(1):
+        rel_error = test_no_vital_dynamics("compartmental")
         rel_errors.append(rel_error)
     print(f"Relative errors: {rel_errors}")
     print(f"Mean relative error: {np.mean(rel_errors)}")

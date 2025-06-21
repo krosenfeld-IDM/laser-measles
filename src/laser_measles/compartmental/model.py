@@ -38,7 +38,7 @@ from laser_core.laserframe import LaserFrame
 from laser_measles.base import BaseLaserModel
 from laser_measles.compartmental.base import BaseScenario
 from laser_measles.compartmental.params import CompartmentalParams
-from laser_measles.utils import cast_type
+from laser_measles.utils import cast_type, StateArray
 
 
 class CompartmentalModel(BaseLaserModel[BaseScenario, CompartmentalParams]):
@@ -89,12 +89,15 @@ class CompartmentalModel(BaseLaserModel[BaseScenario, CompartmentalParams]):
 
         # Create the state vector for each of the patches (4, num_patches) for SEIR
         self.patches.add_vector_property("states", len(self.params.states))  # S, E, I, R
+        
+        # Wrap the states array with StateArray for attribute access
+        self.patches.states = StateArray(self.patches.states, state_names=self.params.states)
 
         # Start with totally susceptible population
-        self.patches.states[0, :] = scenario["pop"]  # All susceptible initially
-        self.patches.states[1, :] = 0  # No exposed initially
-        self.patches.states[2, :] = 0  # No infected initially
-        self.patches.states[3, :] = 0  # No recovered initially
+        self.patches.states.S[:] = scenario["pop"]  # All susceptible initially
+        self.patches.states.E[:] = 0  # No exposed initially
+        self.patches.states.I[:] = 0  # No infected initially
+        self.patches.states.R[:] = 0  # No recovered initially
 
         return
 
@@ -122,8 +125,8 @@ class CompartmentalModel(BaseLaserModel[BaseScenario, CompartmentalParams]):
             indices (int | np.ndarray): The indices of the nodes to expose.
             num_exposed (int | np.ndarray): The number of exposed individuals.
         """
-        self.patches.states[1, indices] += cast_type(num_exposed, self.patches.states.dtype)  # Add to E
-        self.patches.states[0, indices] -= cast_type(num_exposed, self.patches.states.dtype)  # Remove from S
+        self.patches.states.E[indices] += cast_type(num_exposed, self.patches.states.dtype)  # Add to E
+        self.patches.states.S[indices] -= cast_type(num_exposed, self.patches.states.dtype)  # Remove from S
         return
 
     def infect(self, indices: int | np.ndarray, num_infected: int | np.ndarray) -> None:
@@ -135,8 +138,8 @@ class CompartmentalModel(BaseLaserModel[BaseScenario, CompartmentalParams]):
             indices (int | np.ndarray): The indices of the nodes to infect.
             num_infected (int | np.ndarray): The number of infected individuals.
         """
-        self.patches.states[2, indices] += cast_type(num_infected, self.patches.states.dtype)  # Add to I
-        self.patches.states[1, indices] -= cast_type(num_infected, self.patches.states.dtype)  # Remove from E
+        self.patches.states.I[indices] += cast_type(num_infected, self.patches.states.dtype)  # Add to I
+        self.patches.states.E[indices] -= cast_type(num_infected, self.patches.states.dtype)  # Remove from E
         return
 
     def recover(self, indices: int | np.ndarray, num_recovered: int | np.ndarray) -> None:
@@ -148,8 +151,8 @@ class CompartmentalModel(BaseLaserModel[BaseScenario, CompartmentalParams]):
             indices (int | np.ndarray): The indices of the nodes to recover.
             num_recovered (int | np.ndarray): The number of recovered individuals.
         """
-        self.patches.states[3, indices] += cast_type(num_recovered, self.patches.states.dtype)  # Add to R
-        self.patches.states[2, indices] -= cast_type(num_recovered, self.patches.states.dtype)  # Remove from I
+        self.patches.states.R[indices] += cast_type(num_recovered, self.patches.states.dtype)  # Add to R
+        self.patches.states.I[indices] -= cast_type(num_recovered, self.patches.states.dtype)  # Remove from I
         return
 
 

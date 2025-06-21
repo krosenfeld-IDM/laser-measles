@@ -4,28 +4,28 @@ Basic classes
 import numpy as np
 import polars as pl
 from pydantic import BaseModel
+import patito as pt
 
-
-class BaseScenarioSchema(BaseModel):
+class BaseScenarioSchema(pt.Model):
     """
     Schema for the scenario data.
     """
 
-    pop: list[int]  # population
-    lat: list[float]  # latitude
-    lon: list[float]  # longitude
-    ids: list[str | int]  # ids of the nodes
-    mcv1: list[float]  # MCV1 coverages (as percentages, will be divided by 100)
+    pop: int  # population
+    lat: float  # latitude
+    lon: float  # longitude
+    id: str # ids of the nodes
+    mcv1: float  # MCV1 coverages (as percentages, will be divided by 100)
 
 
 class BaseScenario:
     def __init__(self, df: pl.DataFrame):
         self._df = df
-        self._validate(df)
+        BaseScenarioSchema.validate(df, allow_superfluous_columns=True)
 
     def _validate(self, df: pl.DataFrame):
-        # Validate required columns exist
-        required_columns = ["pop", "lat", "lon", "ids", "mcv1"]
+        # Validate required columns exist - derive from schema
+        required_columns = list(BaseScenarioSchema.model_fields.keys())
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns: {missing_columns}")
@@ -51,8 +51,8 @@ class BaseScenario:
                 raise ValueError("Column 'mcv1' must be between 0 and 1")
 
             # Validate ids are either string or integer
-            if not (df["ids"].dtype == pl.String or df["ids"].dtype == pl.Int64):
-                raise ValueError("Column 'ids' must be either string or integer type")
+            if not (df["id"].dtype == pl.String or df["id"].dtype == pl.Int64):
+                raise ValueError("Column 'id' must be either string or integer type")
 
             # Validate no null values
             null_counts = df.null_count()

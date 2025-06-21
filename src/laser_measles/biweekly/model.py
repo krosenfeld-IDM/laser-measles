@@ -38,7 +38,7 @@ from laser_core.laserframe import LaserFrame
 from laser_measles.base import BaseLaserModel
 from laser_measles.biweekly.base import BaseScenario
 from laser_measles.biweekly.params import BiweeklyParams
-from laser_measles.utils import cast_type
+from laser_measles.utils import cast_type, StateArray
 
 
 class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
@@ -83,9 +83,12 @@ class BiweeklyModel(BaseLaserModel[BaseScenario, BiweeklyParams]):
 
         # Create the state vector for each of the patches (3, num_patches)
         self.patches.add_vector_property("states", len(self.params.states))  # S, I, R
+        
+        # Wrap the states array with StateArray for attribute access
+        self.patches.states = StateArray(self.patches.states, state_names=self.params.states)
 
         # Start with totally susceptible population
-        self.patches.states[0, :] = scenario["pop"]
+        self.patches.states.S[:] = scenario["pop"]
 
         return
 

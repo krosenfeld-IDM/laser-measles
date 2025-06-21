@@ -87,7 +87,7 @@ class InfectionProcess(BasePhase):
         total_pop = np.maximum(total_pop, 1)
         
         # Calculate prevalence of infectious individuals in each patch
-        prevalence = states[2] / total_pop  # I_j / N_j
+        prevalence = states.I / total_pop  # I_j / N_j
         
         # Calculate force of infection with seasonal variation
         seasonal_factor = 1 + self.params.seasonality * np.sin(2 * np.pi * (tick - self.params.season_start) / 365.0)
@@ -101,23 +101,23 @@ class InfectionProcess(BasePhase):
         
         # 1. S → E: New exposures
         prob_exposure = 1 - np.exp(-lambda_i)
-        new_exposures = np.random.binomial(states[0], prob_exposure).astype(states.dtype)
+        new_exposures = np.random.binomial(states.S, prob_exposure).astype(states.dtype)
         
         # 2. E → I: Progression to infectious
         prob_infection = 1 - np.exp(-self.params.sigma)
-        new_infections = np.random.binomial(states[1], prob_infection).astype(states.dtype)
+        new_infections = np.random.binomial(states.E, prob_infection).astype(states.dtype)
         
         # 3. I → R: Recovery
         prob_recovery = 1 - np.exp(-self.params.gamma)
-        new_recoveries = np.random.binomial(states[2], prob_recovery).astype(states.dtype)
+        new_recoveries = np.random.binomial(states.I, prob_recovery).astype(states.dtype)
         
         # Update compartments
-        states[0] -= new_exposures      # S decreases
-        states[1] += new_exposures      # E increases
-        states[1] -= new_infections     # E decreases
-        states[2] += new_infections     # I increases
-        states[2] -= new_recoveries     # I decreases
-        states[3] += new_recoveries     # R increases
+        states.S -= new_exposures      # S decreases
+        states.E += new_exposures      # E increases
+        states.E -= new_infections     # E decreases
+        states.I += new_infections     # I increases
+        states.I -= new_recoveries     # I decreases
+        states.R += new_recoveries     # R increases
 
         return
 

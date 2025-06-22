@@ -302,15 +302,14 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
 
             # Clear scenario and params references to large data
             if hasattr(self, 'scenario'):
-                self.scenario = None
+                del(self.scenario)
             if hasattr(self, 'params'):
                 # Clear any large data structures in params
-                if hasattr(self.params, 'mixing') and self.params.mixing is not None:
-                    self.params.mixing = None
+                del(self.params)
 
             # Clear random number generator
             if hasattr(self, 'prng'):
-                self.prng = None
+                del(self.prng)
 
         except Exception as e:
             # Don't let cleanup errors crash the program

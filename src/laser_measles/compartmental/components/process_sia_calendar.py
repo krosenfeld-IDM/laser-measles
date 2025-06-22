@@ -1,11 +1,11 @@
 from collections.abc import Callable
-from datetime import datetime, timedelta
 
 import numpy as np
 import polars as pl
 from pydantic import BaseModel
 from pydantic import Field
 
+from laser_measles.compartmental.model import CompartmentalModel
 from laser_measles.base import BasePhase
 from laser_measles.base import BaseLaserModel
 from laser_measles.utils import cast_type
@@ -31,7 +31,7 @@ class SIACalendarProcess(BasePhase):
     This component:
     1. Groups nodes by geographic level using the same aggregation schema as CaseSurveillanceTracker
     2. Implements SIAs at scheduled times by moving susceptibles to recovered state
-    3. Converts tick numbers to dates using the model's start_time parameter
+    3. Uses the model's current_date to determine when to implement SIAs
     4. Applies vaccination with configurable efficacy rate
 
     Parameters
@@ -47,13 +47,12 @@ class SIACalendarProcess(BasePhase):
     -----
     - SIA efficacy determines the fraction of susceptibles that get vaccinated
     - Vaccination is simulated using a binomial distribution
-    - SIAs are implemented when the model's current date has passed the scheduled date
-    - Since the model steps in 1-day increments, SIAs are implemented on the exact scheduled date
+    - SIAs are implemented when the model's current_date has passed the scheduled date
+    - Since the model steps in 14-day increments, SIAs are implemented on the first step after their scheduled date
     - Each SIA is implemented exactly once
-    - Adapted from biweekly model to work with compartmental model's SEIR structure
     """
 
-    def __init__(self, model, verbose: bool = False, params: SIACalendarParams | None = None) -> None:
+    def __init__(self, model: CompartmentalModel, verbose: bool = False, params: SIACalendarParams | None = None) -> None:
         super().__init__(model, verbose)
         if params is None:
             raise ValueError("SIACalendarParams must be provided")
@@ -65,7 +64,7 @@ class SIACalendarProcess(BasePhase):
 
         for node_idx, node_id in enumerate(model.scenario["id"]):
             if self.params.filter_fn(node_id):
-                # Create geographic grouping key
+                # Create geographic grouping keynode
                 group_key = ":".join(node_id.split(":")[: self.params.aggregation_level])
                 if group_key not in self.node_mapping:
                     self.node_mapping[group_key] = []
@@ -73,9 +72,6 @@ class SIACalendarProcess(BasePhase):
 
         # Track which SIAs have been implemented
         self.implemented_sias = set()
-
-        # Parse start time for date calculations
-        self.start_date = self._parse_start_time(model.params.start_time)
 
         if self.verbose:
             print(f"SIACalendar initialized with {len(self.node_mapping)} groups")
@@ -90,41 +86,22 @@ class SIACalendarProcess(BasePhase):
         if not all(col in self.params.sia_schedule.columns for col in required_columns):
             raise ValueError(f"sia_schedule must contain columns: {required_columns}")
 
-    def _parse_start_time(self, start_time: str) -> datetime:
-        """Parse start time string to datetime object."""
-        try:
-            # Handle YYYY-MM format
-            if len(start_time) == 7:  # YYYY-MM
-                return datetime.strptime(start_time + "-01", "%Y-%m-%d")
-            # Handle YYYY-MM-DD format
-            elif len(start_time) == 10:  # YYYY-MM-DD
-                return datetime.strptime(start_time, "%Y-%m-%d")
-            else:
-                raise ValueError(f"Unsupported start_time format: {start_time}")
-        except ValueError as e:
-            raise ValueError(f"Invalid start_time format '{start_time}': {e}")
-
-    def _tick_to_date(self, tick: int) -> datetime:
-        """Convert tick number to date."""
-        return self.start_date + timedelta(days=tick)
-
-    def __call__(self, model, tick: int) -> None:
-        # Get current state counts - use StateArray attribute access
+    def __call__(self, model: CompartmentalModel, tick: int) -> None:
+        # Get current state counts
         states = model.patches.states
 
-        # Convert tick to current date
-        current_date = self._tick_to_date(tick)
-
         # Check for SIAs scheduled for dates up to and including the current date
-        # Convert sia_schedule dates to datetime for comparison
-        sia_schedule = self.params.sia_schedule.with_columns([
-            pl.col(self.params.date_column).str.to_datetime().alias("datetime_date")
-        ]).filter(pl.col("datetime_date") <= current_date)
+        current_date = model.current_date
+        sia_schedule = self.params.sia_schedule.filter(pl.col(self.params.date_column) <= current_date)
+
+        # If no SIAs are scheduled, do nothing
+        if len(sia_schedule) == 0:
+            return
 
         # Apply SIAs to each scheduled group
         for row in sia_schedule.iter_rows(named=True):
             group_key = row[self.params.group_column]
-            scheduled_date = row["datetime_date"]
+            scheduled_date = row[self.params.date_column]
 
             # Create a unique identifier for this SIA
             sia_id = f"{group_key}_{scheduled_date}"
@@ -136,7 +113,7 @@ class SIACalendarProcess(BasePhase):
             if group_key in self.node_mapping:
                 node_indices = self.node_mapping[group_key]
 
-                # Get susceptible population for this group using StateArray
+                # Get susceptible population for this group
                 susceptibles = states.S[node_indices]
 
                 # Sample number to vaccinate using binomial distribution
@@ -153,10 +130,10 @@ class SIACalendarProcess(BasePhase):
                     total_vaccinated = vaccinated.sum()
                     if total_vaccinated > 0:
                         print(
-                            f"Date {current_date.strftime('%Y-%m-%d')}: Implementing SIA for {group_key} (scheduled for {scheduled_date.strftime('%Y-%m-%d')}) - vaccinated {total_vaccinated} individuals"
+                            f"Date {current_date}: Implementing SIA for {group_key} (scheduled for {scheduled_date}) - vaccinated {total_vaccinated} individuals"
                         )
 
-    def initialize(self, model: BaseLaserModel) -> None:
+    def initialize(self, model: CompartmentalModel) -> None:
         pass
 
     def get_sia_schedule(self) -> pl.DataFrame:

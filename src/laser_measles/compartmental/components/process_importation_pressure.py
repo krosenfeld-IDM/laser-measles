@@ -71,9 +71,10 @@ class ImportationPressureProcess(BasePhase):
         importation_pressure = cast_type(importation_pressure, states.dtype)
         np.minimum(importation_pressure, states.S, out=importation_pressure)
 
-        # update states
-        states.S -= importation_pressure
-        states.I += importation_pressure  # Move to infected state
+        if np.any(importation_pressure > 0):
+            # update states
+            states.S -= importation_pressure
+            states.I += importation_pressure  # Move to infected state
 
     def initialize(self, model: BaseLaserModel) -> None:
         pass

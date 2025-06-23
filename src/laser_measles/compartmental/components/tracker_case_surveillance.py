@@ -20,13 +20,13 @@ class CaseSurveillanceParams(BaseModel):
         detection_rate: Probability of detecting an infected case.
         filter_fn: Function to filter which nodes to include in aggregation.
         aggregate_cases: Whether to aggregate cases by geographic level.
-        aggregation_level: Number of levels to use for aggregation (e.g., 3 for country:state:lga).
+        aggregation_level: Number of levels to use for aggregation (e.g., 2 for country:state:lga).
     """
 
     detection_rate: float = Field(0.1, description="Probability of detecting an infected case", ge=0.0, le=1.0)
     filter_fn: Callable[[str], bool] = Field(lambda x: True, description="Function to filter which nodes to include in aggregation")
     aggregate_cases: bool = Field(True, description="Whether to aggregate cases by geographic level")
-    aggregation_level: int = Field(3, description="Number of levels to use for aggregation (e.g., 3 for country:state:lga)")
+    aggregation_level: int = Field(2, description="Number of levels to use for aggregation (e.g., 2 for country:state:lga)")
 
 
 class CaseSurveillanceTracker(BasePhase):
@@ -60,7 +60,7 @@ class CaseSurveillanceTracker(BasePhase):
             if self.params.filter_fn(node_id):
                 if self.params.aggregate_cases:
                     # Create geographic grouping key
-                    group_key = ":".join(node_id.split(":")[: self.params.aggregation_level])
+                    group_key = ":".join(node_id.split(":")[: self.params.aggregation_level + 1])
                     if group_key not in self.node_mapping:
                         self.node_mapping[group_key] = []
                     self.node_mapping[group_key].append(node_idx)
@@ -83,8 +83,8 @@ class CaseSurveillanceTracker(BasePhase):
         Raises:
             ValueError: If aggregation_level is less than 1.
         """
-        if self.params.aggregation_level < 1:
-            raise ValueError("aggregation_level must be at least 1")
+        if self.params.aggregation_level < 0:
+            raise ValueError("aggregation_level must be at least 0")
 
     def __call__(self, model, tick: int) -> None:
         """Process case surveillance for the current tick.

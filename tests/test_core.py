@@ -1,6 +1,6 @@
 from laser_core import LaserFrame
 
-from laser_measles import compute
+from laser_measles.core import compute
 
 
 def test_compute():

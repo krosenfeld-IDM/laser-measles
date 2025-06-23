@@ -315,6 +315,31 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
             # Don't let cleanup errors crash the program
             print(f"Warning: Error during model cleanup: {e}")
 
+    def get_instance(self, cls: type) -> list:
+        """
+        Get all instances of a specific component class.
+
+        Args:
+            cls: The component class to search for
+
+        Returns:
+            List of instances of the specified class, or None if none found.
+            Works with inheritance - subclasses will match parent class searches.
+
+        Example:
+            state_trackers = model.get_instance(StateTracker)
+            if state_trackers:
+                state_tracker = state_trackers[0]  # Get first instance
+        """
+        matches = [instance for instance in self.instances if isinstance(instance, cls)]
+        return matches if matches else [None]
+    
+    def get_component(self, cls: type) -> list:
+        """
+        Alias for get_instance (instances are instantiated, components are not)
+        """
+        return self.get_instance(cls)
+
 class BaseComponent(ABC):
     """
     Base class for all laser-measles components.

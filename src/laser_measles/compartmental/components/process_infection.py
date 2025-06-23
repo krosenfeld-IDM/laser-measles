@@ -14,7 +14,7 @@ class InfectionParams(BaseModel):
     sigma: float = Field(1.0/8.0, description="Progression rate from exposed to infectious (1/incubation_period)", gt=0.0)
     gamma: float = Field(1.0/5.0, description="Recovery rate from infection (1/infectious_period)", gt=0.0)
     seasonality: float = Field(0.0, description="Seasonality factor, default is no seasonality", ge=0.0)
-    season_start: int = Field(0, description="Season start day (0-364)", ge=0, le=364)
+    season_start: float = Field(0, description="Season start day (0-364)", ge=0, le=364)
     distance_exponent: float = Field(1.5, description="Distance exponent", ge=0.0)
     mixing_scale: float = Field(0.001, description="Mixing scale", ge=0.0)
 

@@ -28,7 +28,7 @@ class CompartmentalParams(BaseModel):
     
     # Seasonal parameters
     seasonality: float = Field(0.0, description="Seasonality factor", ge=0.0)
-    season_start: int = Field(0, description="Season start day (0-364)", ge=0, le=364)
+    season_start: float = Field(0.0, description="Season start day (0-364)", ge=0.0, le=364.0)
 
     @property
     def time_step_days(self) -> int:

@@ -117,7 +117,7 @@ class CaseSurveillanceTracker(BasePhase):
             detected_cases = cast_type(np.random.binomial(n=filtered_infected, p=self.params.detection_rate), model.patches.states.dtype)
             self.reported_cases[tick] = detected_cases
 
-    def get_reported_cases(self) -> pl.DataFrame:
+    def get_dataframe(self) -> pl.DataFrame:
         """Get a DataFrame of reported cases over time.
 
         Returns:
@@ -158,7 +158,7 @@ class CaseSurveillanceTracker(BasePhase):
             The figure containing the heatmap visualization.
         """
         # Get the case data
-        df = self.get_reported_cases()
+        df = self.get_dataframe()
 
         # Convert to pandas for easier plotting
         pdf = df.to_pandas()

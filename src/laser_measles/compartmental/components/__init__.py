@@ -5,8 +5,9 @@ from .process_infection import InfectionProcess  # noqa: F401
 __all__.extend(["InfectionParams", "InfectionProcess"])
 
 from .tracker_state import StateTracker  # noqa: F401, E402
+from .tracker_state import StateTrackerParams  # noqa: F401, E402
 
-__all__.extend(["StateTracker"])
+__all__.extend(["StateTracker", "StateTrackerParams"])
 
 from .process_vital_dynamics import VitalDynamicsParams  # noqa: F401, E402
 from .process_vital_dynamics import VitalDynamicsProcess  # noqa: F401, E402

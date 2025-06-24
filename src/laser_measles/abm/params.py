@@ -1,19 +1,18 @@
 from pydantic import BaseModel, Field
-import numpy as np
 import json
 from collections import OrderedDict
 
 TIME_STEP_DAYS = 1
-STATES = ["S", "E", "I", "R"]  # Compartments/states for discrete-time model
+STATES = ["S", "E", "I", "R"] 
 
-class GenericParams(BaseModel):
+class ABMParams(BaseModel):
     """
-    Parameters for the generic model.
+    Parameters for the ABM model.
     """
 
-    nticks: int = Field(..., description="Number of time steps (bi-weekly for 20 years)")
+    nticks: int = Field(..., description="Number of time steps (daily)")
     seed: int = Field(20241107, description="Random seed")
-    start_time: str = Field("2005-01", description="Initial start time of simulation in YYYY-MM format")
+    start_time: str = Field("2000-01", description="Initial start time of simulation in YYYY-MM format")
     verbose: bool = Field(False, description="Whether to print verbose output")
 
     @property

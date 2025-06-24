@@ -58,15 +58,15 @@ from laser_measles.utils import cast_type
 
 from .components.process_births import BirthsProcess
 from .components.process_births_contant_pop import BirthsConstantPopProcess
-from .params import GenericParams
+from .params import ABMParams
 
 
-class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
+class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
     """
     A class to represent the agent-based model.
     """
 
-    def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "generic") -> None:
+    def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "abm") -> None:
         """
         Initialize the disease model with the given scenario and parameters.
 
@@ -74,7 +74,7 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
 
             scenario (pd.DataFrame): A DataFrame containing the metapopulation patch data, including population, latitude, and longitude.
             parameters (PropertySet): A set of parameters for the model and simulations.
-            name (str, optional): The name of the model. Defaults to "generic".
+            name (str, optional): The name of the model. Defaults to "abm".
 
         Returns:
 
@@ -239,3 +239,6 @@ class Model(BaseLaserModel[pd.DataFrame, GenericParams]):
 
         yield
         return
+
+# Alias for backwards compatibility
+Model = ABMModel

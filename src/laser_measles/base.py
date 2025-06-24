@@ -9,6 +9,7 @@ for execution during simulation loops.
 
 The BaseLaserModel class is the base class for all laser-measles models.
 """
+
 from __future__ import annotations
 
 from abc import ABC
@@ -20,7 +21,9 @@ from typing import Generic
 from typing import TypeVar
 
 import alive_progress
+import matplotlib.pyplot as plt
 from laser_core.random import seed as seed_prng
+from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 ScenarioType = TypeVar("ScenarioType")
@@ -57,7 +60,7 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         # Component management attributes
         self._components: list = []
         self.instances: list = []
-        self.phases: list = [] # Called every tick
+        self.phases: list = []  # Called every tick
 
         # Metrics and timing
         self.metrics: list = []
@@ -201,7 +204,7 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         their initialized flag to True after successful initialization.
         """
         for instance in self.instances:
-            if hasattr(instance, 'initialize') and hasattr(instance, 'initialized'):
+            if hasattr(instance, "initialize") and hasattr(instance, "initialized"):
                 instance.initialize(self)
                 instance.initialized = True
 
@@ -237,53 +240,53 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
     def cleanup(self) -> None:
         """
         Clean up model resources to prevent memory leaks.
-        
+
         This method should be called when the model is no longer needed
         to free up memory from LaserFrame objects and other large data structures.
         """
         try:
             # Clear LaserFrame objects
-            if hasattr(self, 'patches') and self.patches is not None:
+            if hasattr(self, "patches") and self.patches is not None:
                 # Clear all properties from the LaserFrame
-                if hasattr(self.patches, '_properties'):
+                if hasattr(self.patches, "_properties"):
                     for prop_name in list(self.patches._properties.keys()):
                         setattr(self.patches, prop_name, None)
                     self.patches._properties.clear()
-                
+
                 # Reset LaserFrame capacity and count
-                if hasattr(self.patches, '_capacity'):
+                if hasattr(self.patches, "_capacity"):
                     self.patches._capacity = 0
-                if hasattr(self.patches, '_count'):
+                if hasattr(self.patches, "_count"):
                     self.patches._count = 0
-                    
+
                 self.patches = None
 
-            if hasattr(self, 'people') and self.people is not None:
+            if hasattr(self, "people") and self.people is not None:
                 # Clear all properties from the LaserFrame
-                if hasattr(self.people, '_properties'):
+                if hasattr(self.people, "_properties"):
                     for prop_name in list(self.people._properties.keys()):
                         setattr(self.people, prop_name, None)
                     self.people._properties.clear()
-                
+
                 # Reset LaserFrame capacity and count
-                if hasattr(self.people, '_capacity'):
+                if hasattr(self.people, "_capacity"):
                     self.people._capacity = 0
-                if hasattr(self.people, '_count'):
+                if hasattr(self.people, "_count"):
                     self.people._count = 0
-                    
+
                 self.people = None
 
             # Clear component instances and their references
-            if hasattr(self, 'instances'):
+            if hasattr(self, "instances"):
                 for instance in self.instances:
                     # Clear any LaserFrame references in components
-                    if hasattr(instance, 'model'):
+                    if hasattr(instance, "model"):
                         instance.model = None
                     # Clear any large data structures in components
                     for attr_name in dir(instance):
-                        if not attr_name.startswith('_') and attr_name not in ['initialized', 'verbose']:
+                        if not attr_name.startswith("_") and attr_name not in ["initialized", "verbose"]:
                             attr_value = getattr(instance, attr_name, None)
-                            if hasattr(attr_value, '__len__') and not callable(attr_value):
+                            if hasattr(attr_value, "__len__") and not callable(attr_value):
                                 try:
                                     setattr(instance, attr_name, None)
                                 except (AttributeError, TypeError):
@@ -291,25 +294,25 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
                 self.instances.clear()
 
             # Clear phases and components
-            if hasattr(self, 'phases'):
+            if hasattr(self, "phases"):
                 self.phases.clear()
-            if hasattr(self, '_components'):
+            if hasattr(self, "_components"):
                 self._components.clear()
 
             # Clear metrics and other large data structures
-            if hasattr(self, 'metrics'):
+            if hasattr(self, "metrics"):
                 self.metrics.clear()
 
             # Clear scenario and params references to large data
-            if hasattr(self, 'scenario'):
-                del(self.scenario)
-            if hasattr(self, 'params'):
+            if hasattr(self, "scenario"):
+                del self.scenario
+            if hasattr(self, "params"):
                 # Clear any large data structures in params
-                del(self.params)
+                del self.params
 
             # Clear random number generator
-            if hasattr(self, 'prng'):
-                del(self.prng)
+            if hasattr(self, "prng"):
+                del self.prng
 
         except Exception as e:
             # Don't let cleanup errors crash the program
@@ -333,12 +336,46 @@ class BaseLaserModel(ABC, Generic[ScenarioType, ParamsType]):
         """
         matches = [instance for instance in self.instances if isinstance(instance, cls)]
         return matches if matches else [None]
-    
+
     def get_component(self, cls: type) -> list:
         """
         Alias for get_instance (instances are instantiated, components are not)
         """
         return self.get_instance(cls)
+
+    def visualize(self, pdf: bool = True) -> None:
+        """
+        Visualize each compoonent instances either by displaying plots or saving them to a PDF file.
+
+        Parameters:
+
+            pdf (bool): If True, save the plots to a PDF file. If False, display the plots interactively. Default is True.
+
+        Returns:
+
+            None
+        """
+
+        if not pdf:
+            for instance in self.instances:
+                for _plot in instance.plot():
+                    plt.show()
+
+        else:
+            print("Generating PDF output…")
+            pdf_filename = f"{self.name} {self.tstart:%Y-%m-%d %H%M%S}.pdf"
+            with PdfPages(pdf_filename) as pdf:
+                for instance in self.instances:
+                    for _plot in instance.plot():
+                        pdf.savefig()
+                        plt.close()
+
+            print(f"PDF output saved to '{pdf_filename}'.")
+
+        return
+
+    def plot(self, fig: Figure = None):
+        raise NotImplementedError("Subclasses must implement this method")
 
 class BaseComponent(ABC):
     """
@@ -369,6 +406,7 @@ class BaseComponent(ABC):
         Placeholder for plotting method.
         """
         yield None
+
 
 class BasePhase(BaseComponent):
     """

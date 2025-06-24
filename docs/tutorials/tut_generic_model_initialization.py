@@ -1,7 +1,7 @@
 # %% [markdown]
-# # Generic Model Initialization Tutorial
+# # ABM Model Initialization Tutorial
 # 
-# This tutorial demonstrates how to initialize a generic measles model with three core components:
+# This tutorial demonstrates how to initialize an agent-based measles model with three core components:
 # - Births (with constant population)
 # - Transmission
 # - Disease progression
@@ -10,20 +10,18 @@
 
 # %%
 import numpy as np
-import pandas as pd
-from laser_core.propertyset import PropertySet
+import polars as pl
 import matplotlib.pyplot as plt
 
-from laser_measles.generic.model import Model
-from laser_measles.generic.params import GenericParams
-from laser_measles.generic.components import (
-    BirthsConstantPopProcess, BirthsParams,
+from laser_measles.abm.model import Model
+from laser_measles.abm.params import ABMParams
+from laser_measles.abm.components import (
+    BirthsConstantPopProcess, BirthsConstantPopParams,
     TransmissionProcess, TransmissionParams,
-    StatesTracker,
-    PopulationTracker,
 )
-from laser_measles.generic.components.process_disease import DiseaseProcess, DiseaseParams
-from laser_measles.components import create_component
+from laser_measles.abm.components.process_disease import DiseaseProcess, DiseaseParams
+from laser_measles.abm.components.tracker_state import StatesTracker
+from laser_measles.abm.components.tracker_population import PopulationTracker
 # %% [markdown]
 # ## Step 1: Create a Simple Scenario
 # 
@@ -31,7 +29,7 @@ from laser_measles.components import create_component
 
 # %%
 # Create scenario with 5 patches of different population sizes
-scenario = pd.DataFrame({
+scenario = pl.DataFrame({
     'name': ['City_A', 'City_B', 'Town_C', 'Village_D', 'Settlement_E'],
     'population': [50000, 30000, 15000, 8000, 2000],
     'latitude': [40.7128, 34.0522, 41.8781, 39.9526, 47.6062],
@@ -86,8 +84,8 @@ for key, value in parameters.to_dict().items():
 # Create the model instance with the scenario and parameters.
 
 # %%
-model_params = GenericParams(nticks=parameters.nticks, start_time=parameters.start_time, seed=parameters.seed)
-model = Model(scenario, model_params, name="Tutorial_Generic_Model")
+model_params = ABMParams(nticks=nticks, start_time='2000-01', seed=seed)
+model = Model(scenario, model_params, name="Tutorial_ABM_Model")
 
 print(f"Model initialized with {len(model.patches)} patches")
 print(f"Total population capacity: {model.people.capacity:,}")

@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import os
 from scipy.optimize import fsolve
 
-from laser_measles.generic import Model
-from laser_measles.generic.components import (
+from laser_measles.abm import Model
+from laser_measles.abm.components import (
     ExposureProcess, ExposureParams,
     InfectionProcess, InfectionParams,
     SusceptibilityProcess, SusceptibilityParams,
@@ -16,8 +16,8 @@ from laser_measles.generic.components import (
 )
 from laser_measles.components import create_component
 
-from laser_measles.generic.utils import set_initial_susceptibility_in_patch
-from laser_measles.generic.utils import seed_infections_in_patch
+from laser_measles.abm.utils import set_initial_susceptibility_in_patch
+from laser_measles.abm.utils import seed_infections_in_patch
 
 # %load_ext line_profiler
 

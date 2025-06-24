@@ -8,8 +8,8 @@ import polars as pl
 import numpy as np
 from laser_measles.biweekly import BiweeklyModel, BiweeklyParams
 from laser_measles.biweekly.base import BaseScenario
-from laser_measles.generic import Model as GenericModel
-from laser_measles.generic.params import GenericParams
+from laser_measles.abm import Model as ABMModel
+from laser_measles.abm.params import ABMParams
 from laser_core.propertyset import PropertySet
 
 
@@ -25,15 +25,14 @@ def create_test_scenario():
     return pl.DataFrame(data)
 
 
-def create_generic_scenario():
-    """Create a small test scenario for generic model."""
-    import pandas as pd
+def create_abm_scenario():
+    """Create a small test scenario for ABM model."""
     data = {
         "population": np.random.randint(1000, 5000, 10),
         "latitude": np.random.uniform(-10, 10, 10),
         "longitude": np.random.uniform(-10, 10, 10),
     }
-    return pd.DataFrame(data)
+    return pl.DataFrame(data)
 
 
 class TestModelCleanup:
@@ -56,16 +55,14 @@ class TestModelCleanup:
     
     def test_generic_model_has_cleanup(self):
         """Test that Generic Model has cleanup method."""
-        scenario = create_generic_scenario()
-        params = PropertySet(
+        scenario = create_abm_scenario()
+        abm_params = ABMParams(
             seed=42,
-            num_ticks=4,
-            time_step_days=1,
+            nticks=4,
             start_time="2020-01"
         )
-        generic_params = GenericParams(**dict(params))
         
-        model = GenericModel(scenario, generic_params, name="test_generic")
+        model = ABMModel(scenario, abm_params, name="test_generic")
         
         # Check that cleanup method exists
         assert hasattr(model, 'cleanup'), "Generic Model should have cleanup method"
@@ -94,16 +91,14 @@ class TestModelCleanup:
     
     def test_generic_model_cleanup_clears_laserframes(self):
         """Test that cleanup properly clears LaserFrame objects in generic model."""
-        scenario = create_generic_scenario()
-        params = PropertySet(
+        scenario = create_abm_scenario()
+        abm_params = ABMParams(
             seed=42,
-            num_ticks=4,
-            time_step_days=1,
+            nticks=4,
             start_time="2020-01"
         )
-        generic_params = GenericParams(**dict(params))
         
-        model = GenericModel(scenario, generic_params, name="test_cleanup")
+        model = ABMModel(scenario, abm_params, name="test_cleanup")
         
         # Verify LaserFrames exist before cleanup
         assert hasattr(model, 'patches'), "Model should have patches"

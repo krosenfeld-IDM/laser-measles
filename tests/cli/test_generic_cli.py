@@ -4,7 +4,7 @@ Tests for the generic CLI functionality converted from Click to Typer.
 
 import pytest
 from typer.testing import CliRunner
-from laser_measles.generic.cli import app
+from laser_measles.abm.cli import app
 
 
 def test_generic_cli_help():

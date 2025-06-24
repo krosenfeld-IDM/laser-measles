@@ -129,32 +129,6 @@ class BirthsConstantPopProcess(BaseComponent):
             model.patches.populations.dtype,
         )
 
-        # model.patches.exposed_test[tick+1, :] -= np.bincount(
-        #     model.population.nodeid[indices],
-        #     weights=(model.population.etimer[indices] > 0),
-        #     minlength=model.patches.populations.shape[1]
-        # ).astype(np.uint32)
-
-        # model.patches.cases_test[tick+1, :] -= np.bincount(
-        #     model.population.nodeid[indices],
-        #     weights=(model.population.itimer[indices] > 0),
-        #     minlength=model.patches.populations.shape[1]
-        # ).astype(np.uint32)
-
-        # model.patches.recovered_test[tick+1, :] -= np.bincount(
-        #     model.population.nodeid[indices],
-        #     weights=((model.population.etimer[indices]==0 ) &
-        #              (model.population.itimer[indices]==0) &
-        #              (model.population.susceptibility[indices] == 0)),
-        #     minlength=model.patches.populations.shape[1]
-        # ).astype(np.uint32)
-
-        # model.patches.susceptibility_test[tick+1, :] += np.bincount(
-        #     model.population.nodeid[indices],
-        #     weights=(model.population.susceptibility[indices] == 0),
-        #     minlength=model.patches.populations.shape[1]
-        # ).astype(np.uint32)
-
         timing = [tick]
         for initializer in self._initializers:
             tstart = datetime.now(tz=None)  # noqa: DTZ005

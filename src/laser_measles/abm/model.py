@@ -46,11 +46,10 @@ Model Class:
 
 
 import numpy as np
-import pandas as pd
+import polars as pl
 from laser_core.laserframe import LaserFrame
 from laser_core.propertyset import PropertySet
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 from laser_measles.base import BaseLaserModel
@@ -61,19 +60,19 @@ from .components.process_births_contant_pop import BirthsConstantPopProcess
 from .params import ABMParams
 
 
-class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
+class ABMModel(BaseLaserModel):
     """
     A class to represent the agent-based model.
     """
 
-    def __init__(self, scenario: pd.DataFrame, parameters: PropertySet, name: str = "abm") -> None:
+    def __init__(self, scenario: pl.DataFrame, parameters: ABMParams, name: str = "abm") -> None:
         """
         Initialize the disease model with the given scenario and parameters.
 
         Args:
 
-            scenario (pd.DataFrame): A DataFrame containing the metapopulation patch data, including population, latitude, and longitude.
-            parameters (PropertySet): A set of parameters for the model and simulations.
+            scenario (pl.DataFrame): A DataFrame containing the metapopulation patch data, including population, latitude, and longitude.
+            parameters (ABMParams): A set of parameters for the model and simulations.
             name (str, optional): The name of the model. Defaults to "abm".
 
         Returns:
@@ -90,7 +89,7 @@ class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
 
         return
 
-    def initialize_patches(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
+    def initialize_patches(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
         # We need some patches with population data ...
         npatches = len(scenario)
         self.patches = LaserFrame(npatches, initial_count=0)
@@ -98,18 +97,16 @@ class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
         # "activate" all the patches (count == capacity)
         self.patches.add(npatches)
         self.patches.add_scalar_property("populations", dtype=np.uint32, default=0)
-        # set patch populations at t = 0 to initial populations
-        self.patches.populations[:] = cast_type(scenario.population, np.uint32)
+        self.patches.populations[:] = cast_type(scenario.population, self.patches.populations.dtype)
 
         return
 
-    def initialize_population(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
-        capacity = np.sum(self.patches.populations)
+    def initialize_population(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
+        capacity = np.sum(self.patches.populations) # TODO: capacity should be set by vital dynamics
         self.people = LaserFrame(capacity=int(capacity), initial_count=0)
         self.people.add_scalar_property("nodeid", dtype=np.uint16)
         self.people.add_scalar_property("state", dtype=np.uint8, default=0)
-        # self.patches.add_vector_property("exposed", length=self.params.nticks, dtype=np.uint32)
-        # self.patches.add_vector_property("recovered", length=self.params.nticks, dtype=np.uint32)
+        self.people.add_scalar_property("susceptibility", dtype=np.float32, default=0)
 
         for nodeid, count in enumerate(self.patches.populations):
             first, last = self.people.add(count)
@@ -117,7 +114,7 @@ class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
 
         return
 
-    def initialize_network(self, scenario: pd.DataFrame, parameters: PropertySet) -> None:
+    def initialize_network(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
         return
 
     def _setup_components(self) -> None:
@@ -147,36 +144,6 @@ class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
         """
         return
 
-    def visualize(self, pdf: bool = True) -> None:
-        """
-        Visualize each compoonent instances either by displaying plots or saving them to a PDF file.
-
-        Parameters:
-
-            pdf (bool): If True, save the plots to a PDF file. If False, display the plots interactively. Default is True.
-
-        Returns:
-
-            None
-        """
-
-        if not pdf:
-            for instance in self.instances:
-                for _plot in instance.plot():
-                    plt.show()
-
-        else:
-            print("Generating PDF output…")
-            pdf_filename = f"{self.name} {self.tstart:%Y-%m-%d %H%M%S}.pdf"
-            with PdfPages(pdf_filename) as pdf:
-                for instance in self.instances:
-                    for _plot in instance.plot():
-                        pdf.savefig()
-                        plt.close()
-
-            print(f"PDF output saved to '{pdf_filename}'.")
-
-        return
 
     def plot(self, fig: Figure = None):
         """
@@ -225,7 +192,7 @@ class ABMModel(BaseLaserModel[pd.DataFrame, ABMParams]):
 
         _fig = plt.figure(figsize=(12, 9), dpi=128) if fig is None else fig
 
-        metrics = pd.DataFrame(self.metrics, columns=["tick"] + [type(phase).__name__ for phase in self.phases])
+        metrics = pl.DataFrame(self.metrics, columns=["tick"] + [type(phase).__name__ for phase in self.phases])
         plot_columns = metrics.columns[1:]
         sum_columns = metrics[plot_columns].sum()
 

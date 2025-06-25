@@ -33,3 +33,8 @@ from .process_initialize_states import InitializeEquilibriumStatesParams  # noqa
 from .process_initialize_states import InitializeEquilibriumStatesProcess  # noqa: F401, E402
 
 __all__.extend(["InitializeEquilibriumStatesParams", "InitializeEquilibriumStatesProcess"])
+
+from .process_infection_seeding import InfectionSeedingParams  # noqa: F401, E402
+from .process_infection_seeding import InfectionSeedingProcess  # noqa: F401, E402
+
+__all__.extend(["InfectionSeedingParams", "InfectionSeedingProcess"])

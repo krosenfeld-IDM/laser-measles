@@ -53,7 +53,7 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from laser_measles.base import BaseLaserModel
-from laser_measles.utils import cast_type
+from laser_measles.utils import cast_type, StateArray
 
 from .components.process_births import BirthsProcess
 from .components.process_births_contant_pop import BirthsConstantPopProcess
@@ -83,25 +83,29 @@ class ABMModel(BaseLaserModel):
 
         print(f"Initializing the {name} model with {len(scenario)} patches…")
 
-        self.initialize_patches(scenario, parameters)
-        self.initialize_population(scenario, parameters)
-        # self.initialize_network(scenario, parameters)
+        # Setup patches and people - initialization is done via components
+        self.setup_patches(scenario, parameters)
+        self.setup_people(scenario, parameters)
 
         return
 
-    def initialize_patches(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
-        # We need some patches with population data ...
-        npatches = len(scenario)
-        self.patches = LaserFrame(npatches, initial_count=0)
+    def setup_patches(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
+        self.patches = LaserFrame(capacity=len(scenario))
+        # Create the state vector for each of the patches (4, num_patches) for SEIR
+        self.patches.add_vector_property("states", len(self.params.states))  # S, E, I, R
+        
+        # Wrap the states array with StateArray for attribute access
+        self.patches.states = StateArray(self.patches.states, state_names=self.params.states)
 
-        # "activate" all the patches (count == capacity)
-        self.patches.add(npatches)
-        self.patches.add_scalar_property("populations", dtype=np.uint32, default=0)
-        self.patches.populations[:] = cast_type(scenario.population, self.patches.populations.dtype)
+        # Start with totally susceptible population
+        self.patches.states.S[:] = scenario["pop"]  # All susceptible initially
+        self.patches.states.E[:] = 0  # No exposed initially
+        self.patches.states.I[:] = 0  # No infected initially
+        self.patches.states.R[:] = 0  # No recovered initially
 
         return
 
-    def initialize_population(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
+    def setup_people(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
         capacity = np.sum(self.patches.populations) # TODO: capacity should be set by vital dynamics
         self.people = LaserFrame(capacity=int(capacity), initial_count=0)
         self.people.add_scalar_property("nodeid", dtype=np.uint16)
@@ -112,9 +116,6 @@ class ABMModel(BaseLaserModel):
             first, last = self.people.add(count)
             self.people.nodeid[first:last] = nodeid
 
-        return
-
-    def initialize_network(self, scenario: pl.DataFrame, parameters: PropertySet) -> None:
         return
 
     def _setup_components(self) -> None:

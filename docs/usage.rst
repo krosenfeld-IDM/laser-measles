@@ -300,3 +300,267 @@ The component system provides a uniform interface for disease dynamics with inte
 
     # Add to model
     model.components = [MyInfectionProcess]
+
+----------
+
+
+Gotchas & FAQ
+-------------
+
+This section documents common pitfalls when writing ``laser-measles`` models.
+If you encounter unexpected ``ImportError``, tracker shape mismatches, or
+component configuration errors, check the items below first.
+
+These issues occur frequently when users are learning the component system
+or adapting code between the ABM, biweekly, and compartmental models.
+
+1. Where does ``create_component`` come from?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``create_component`` is always imported from
+``laser.measles.components``, regardless of which model type you are using.
+
+It lives in the shared components package because it works with **all model
+types** (ABM, biweekly, and compartmental).
+
+.. code-block:: python
+
+   # CORRECT
+   from laser.measles.components import create_component
+
+   # WRONG — ImportError
+   from laser.measles.abm import create_component
+   from laser.measles.biweekly import create_component
+   from laser.measles.compartmental import create_component
+
+
+2. How do I access component classes and their parameter classes?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each model package exports a ``components`` module. All component classes
+and their corresponding parameter (Pydantic) classes should be accessed
+through that module using **dot access**, rather than through deep imports.
+
+.. code-block:: python
+
+   # CORRECT — import the components namespace
+   from laser.measles.abm import ABMModel, ABMParams, components
+   from laser.measles.components import create_component
+
+   model.components = [
+       components.NoBirthsProcess,
+
+       create_component(
+           components.InfectionSeedingProcess,
+           params=components.InfectionSeedingParams(target_patches=["patch_0"])
+       ),
+
+       components.InfectionProcess,
+
+       create_component(
+           components.StateTracker,
+           params=components.StateTrackerParams(aggregation_level=0)
+       ),
+   ]
+
+Deep imports are discouraged because parameter classes may not exist in the
+same module or may move between versions.
+
+.. code-block:: python
+
+   # DISCOURAGED — fragile deep imports
+   from laser.measles.abm.components import InfectionSeedingProcess
+   from laser.measles.abm.params import InfectionSeedingParams
+
+
+The same pattern applies to the biweekly and compartmental models:
+
+.. code-block:: python
+
+   from laser.measles.biweekly import BiweeklyModel, BiweeklyParams, components
+   from laser.measles.compartmental import CompartmentalModel, CompartmentalParams, components
+
+
+3. ``model.components`` is assigned *after* construction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The model constructors only accept ``scenario`` and ``params``.
+
+Components must be attached by assigning to ``model.components`` **after**
+the model object is created.
+
+.. code-block:: python
+
+   # CORRECT
+   model = BiweeklyModel(scenario=scenario, params=params)
+
+   model.components = [
+       components.InitializeEquilibriumStatesProcess,
+       components.ImportationPressureProcess,
+       components.InfectionProcess,
+       components.VitalDynamicsProcess,
+       components.StateTracker,
+   ]
+
+The model internally instantiates the component classes when the list is
+assigned.
+
+.. code-block:: python
+
+   # WRONG — TypeError: unexpected keyword argument "components"
+   model = BiweeklyModel(
+       scenario=scenario,
+       params=params,
+       components=[...]
+   )
+
+This applies to all three model types:
+
+- ``ABMModel``
+- ``BiweeklyModel``
+- ``CompartmentalModel``
+
+
+4. There is no ``lm`` object in ``laser.measles``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The top-level ``laser.measles`` package does **not** export a convenience
+object such as ``lm``.
+
+Some tutorials or AI-generated examples use this alias, but it is not part
+of the package API.
+
+.. code-block:: python
+
+   # WRONG — ImportError
+   from laser.measles import lm
+
+   # CORRECT
+   from laser.measles.abm import ABMModel, ABMParams, components
+
+
+5. ``StateTracker`` output shape depends on ``aggregation_level``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``StateTracker`` component stores time-series data differently depending
+on how it is configured.
+
+Default behavior (global aggregation)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default configuration aggregates across all patches.
+
+Arrays are **1-D** with shape::
+
+   (num_ticks,)
+
+.. code-block:: python
+
+   tracker = model.get_instance("StateTracker")[0]
+
+   peak_I = int(tracker.I.max())
+
+
+Patch-level tracking
+^^^^^^^^^^^^^^^^^^^^
+
+If ``aggregation_level=0`` is used, the tracker stores values **per patch**.
+
+Arrays become **2-D** with shape::
+
+   (num_ticks, n_patches)
+
+.. code-block:: python
+
+   tracker = model.get_instance("StateTracker")[0]
+
+   peak_patch_0 = int(tracker.I[:, 0].max())
+
+
+Retrieve the tracker instance after ``model.run()``:
+
+.. code-block:: python
+
+   tracker = model.get_instance("StateTracker")[0]
+
+
+6. Cast NumPy scalars before building a Polars DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tracker arrays are NumPy arrays, so operations like ``.max()`` return
+NumPy scalar types (``np.int64``, ``np.float64``).
+
+Polars expects **Python primitive types** when constructing row-oriented
+DataFrames. Passing NumPy scalars can trigger ``TypeError`` or
+``DataOrientationWarning``.
+
+.. code-block:: python
+
+   # WRONG
+   rows.append([patch_id, tracker.I[:, p].max()])
+
+   # CORRECT
+   rows.append([patch_id, int(tracker.I[:, p].max())])
+
+An alternative is to use ``.item()``:
+
+.. code-block:: python
+
+   rows.append([patch_id, tracker.I[:, p].max().item()])
+
+
+7. Components are classes, not instances
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Components should be passed as **classes**, not instantiated objects.
+
+The model constructs the component instances internally.
+
+.. code-block:: python
+
+   # CORRECT
+   model.components = [
+       components.InfectionProcess
+   ]
+
+   # WRONG
+   model.components = [
+       components.InfectionProcess()
+   ]
+
+
+If parameters are needed, use ``create_component``:
+
+.. code-block:: python
+
+   model.components = [
+       create_component(
+           components.InfectionProcess,
+           params=components.InfectionParams(beta=0.8)
+       )
+   ]
+
+
+8. Scenario DataFrame must contain required columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All models expect the scenario DataFrame to contain at least the following
+columns:
+
+- ``id`` — patch identifier
+- ``lat`` — latitude
+- ``lon`` — longitude
+- ``pop`` — population size
+- ``mcv1`` — routine vaccination coverage
+
+Missing columns will trigger a validation error when constructing the model.
+
+.. code-block:: python
+
+   scenario = pl.DataFrame({
+       "id": ["patch_0"],
+       "lat": [0.0],
+       "lon": [0.0],
+       "pop": [50000],
+       "mcv1": [0.8],
+   })

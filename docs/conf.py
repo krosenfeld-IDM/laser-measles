@@ -14,7 +14,7 @@ project = "laser-measles"
 copyright = f"2024 - {sc.now().year}, Bill & Melinda Gates Foundation. All rights reserved."
 
 # The short X.Y version
-version = release = "0.9.3"
+version = release = "0.9.4"
 
 
 # -- General configuration ---------------------------------------------------

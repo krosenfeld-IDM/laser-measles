@@ -1,3 +1,5 @@
+from laser.measles.components import create_component
+
 from . import components
 from .base import BaseScenario
 from .components import *  # noqa: F403
@@ -14,5 +16,6 @@ __all__ = [  # noqa: PLE0604
     "Model",
     "Params",
     "components",
+    "create_component",
     *_components_all,
 ]

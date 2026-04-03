@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "laser.measles"
-version = "0.9.4"
+version = "0.10.0"
 license-files = ["LICENSE"]
 readme = "README.rst"
 
@@ -124,7 +124,7 @@ force-single-line = true
 quote-style = "double"
 
 [tool.bumpversion]
-current_version = "0.9.4"
+current_version = "0.10.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"
@@ -151,11 +151,6 @@ search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
 [[tool.bumpversion.files]]
-filename = "docs/conf.py"
-search = 'version = release = "{current_version}"'
-replace = 'version = release = "{new_version}"'
-
-[[tool.bumpversion.files]]
 filename = "src/laser/measles/__init__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
@@ -170,8 +165,20 @@ dev = [
     "bump-my-version"
 ]
 docs = [
-    "sphinx-autodoc-typehints>=3.0.1",
-    "sphinxcontrib-napoleon>=0.7",
+    "mkdocs-material",
+    "mkdocs-include-markdown-plugin",
+    "mkdocs-autorefs",
+    "mkdocs-api-autonav",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "python-markdown-math",
+    "pymdown-extensions",
+    "mkdocs-jupyter",
+    "mkdocstrings",
+    "mkdocstrings-python",
+    "mkdocs-table-reader-plugin",
+    "mkdocs-mermaid2-plugin",
+    "mkdocs-exclude",
 ]
 examples = [
     "jupytext>=1.17.2",
@@ -188,6 +195,20 @@ full = [
     "pyright",
     "mypy",
     "bump-my-version",
+    "mkdocs-material",
+    "mkdocs-include-markdown-plugin",
+    "mkdocs-autorefs",
+    "mkdocs-api-autonav",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "python-markdown-math",
+    "pymdown-extensions",
+    "mkdocs-jupyter",
+    "mkdocstrings",
+    "mkdocstrings-python",
+    "mkdocs-table-reader-plugin",
+    "mkdocs-mermaid2-plugin",
+    "mkdocs-exclude",
     "jupytext>=1.17.2",
     "notebook>=7.4.3",
     "seaborn>=0.13.2",

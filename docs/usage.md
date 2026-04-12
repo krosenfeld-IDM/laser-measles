@@ -1,4 +1,4 @@
-# Usage
+# Using laser-measles
 
 ## Overview
 
@@ -149,30 +149,11 @@ model = CompartmentalModel(scenario_data, params)
 model.run()
 ```
 
-!!! warning
+!!! warning "Constructor requirements apply to all three model types"
 
-    **All three model constructors require both** `scenario` **and** `params`.
-    There is no default — omitting `params` raises `TypeError` immediately:
-
-    Do not pass only `scenario` to the constructor — omitting `params`
-    raises `TypeError: missing 1 required positional argument: 'params'`.
-
-    Always create the `*Params` object first, then pass both to the constructor:
-
-    ```python
-    # CORRECT — both arguments are required
-    params = ABMParams(num_ticks=365, seed=42, start_time="2000-01")
-    model  = ABMModel(scenario=scenario, params=params)
-
-    params = BiweeklyParams(num_ticks=130, seed=42, start_time="2000-01")
-    model  = BiweeklyModel(scenario=scenario, params=params)
-
-    params = CompartmentalParams(num_ticks=730, seed=42, start_time="2000-01")
-    model  = CompartmentalModel(scenario=scenario, params=params)
-    ```
-
-    Components are added **after** construction via `model.add_component()`.
-    `params` configures duration, seed, and start date — not components.
+    Each model constructor requires both `scenario` and `params` — omitting `params` raises
+    `TypeError` immediately. Components are added **after** construction via `model.add_component()`.
+    See [Gotchas & FAQ](#gotchas) for detailed constructor guidance and common errors.
 
 ---
 
@@ -321,92 +302,14 @@ These end-to-end scripts are copy-paste runnable. Each one shows the
 wiring, running, and result retrieval — with detailed inline comments on
 every line that commonly causes errors.
 
-### The three non-negotiable constructor facts
+!!! warning "Before writing model code"
 
-!!! warning
+    All three model types share the same constructor signature: `Model(scenario, params)`.
+    The `params` object is always the second positional argument and is required — there is
+    no default. The `start_time` parameter must use `"YYYY-MM"` format, not `"YYYY-MM-DD"`.
 
-    **Read this before writing any model code.**
-
-    These three facts are the source of the most common runtime failures.
-    They apply to every model type without exception.
-
-**Fact 1 — The only three model classes are** `ABMModel`, `BiweeklyModel`, `CompartmentalModel`
-
-Import them from their respective subpackages:
-
-```python
-from laser.measles.abm           import ABMModel,           ABMParams
-from laser.measles.biweekly      import BiweeklyModel,      BiweeklyParams
-from laser.measles.compartmental import CompartmentalModel, CompartmentalParams
-```
-
-!!! warning
-
-    The following names **do not exist** in the package and will raise
-    `AttributeError` or `ImportError`:
-
-    ```python
-    lm.abm.Model          # ← does not exist
-    lm.abm.ABM            # ← does not exist
-    lm.abm.LaserABM       # ← does not exist
-    lm.Model              # ← does not exist
-    lm.BiweeklyModel      # ← does not exist
-    lm.CompartmentalModel # ← does not exist
-    lm.create_model(...)  # ← does not exist
-    ```
-
-    There is no convenience shortcut. Always import from the subpackage.
-
-**Fact 2 — The constructor signature is always** `Model(scenario, params)`
-
-```python
-params = ABMParams(num_ticks=365, seed=42)      # ALL settings go here
-model  = ABMModel(scenario, params)              # then params goes here
-```
-
-!!! warning
-
-    **params is not optional.** Calling the constructor with only a scenario
-    raises `TypeError` immediately, before the simulation runs:
-
-    ```python
-    ABMModel(scenario=scenario)                   # TypeError: missing 1 required positional argument: 'params'
-    BiweeklyModel(scenario=scenario)              # TypeError: missing 1 required positional argument: 'params'
-    CompartmentalModel(scenario=scenario)         # TypeError: missing 1 required positional argument: 'params'
-    ```
-
-    The `*Params` object is always the **second positional argument**.
-    It is mandatory — there is no default and no shortcut.
-
-    Passing simulation settings directly as keyword arguments also fails:
-
-    ```python
-    ABMModel(scenario, num_ticks=365)             # TypeError
-    ABMModel(scenario, n_ticks=365)               # TypeError
-    ABMModel(scenario, seed=42)                   # TypeError
-    ABMModel(scenario, params, components=[...])  # TypeError
-    BiweeklyModel(scenario, n_ticks=26)           # TypeError
-    CompartmentalModel(scenario, num_ticks=730)   # TypeError
-    ```
-
-    Every simulation setting — duration, seed, start date, verbosity —
-    goes into the `*Params` object. Then the populated `*Params`
-    object is the second argument to the model constructor.
-
-**Fact 3 —** `start_time` **must be** `"YYYY-MM"`, **never** `"YYYY-MM-DD"`
-
-```python
-# CORRECT — "YYYY-MM" format
-params = ABMParams(num_ticks=365, seed=42, start_time="2000-01")
-```
-
-!!! warning
-
-    Passing a full date string raises a Pydantic `ValidationError` at
-    construction time, before the simulation runs:
-
-    Do not pass a full date string like `"2000-01-01"` — it raises
-    `ValidationError: start_time must be in 'YYYY-MM' format`.
+    For the full list of correct import paths, constructor requirements, and common runtime
+    errors, see the [Gotchas & FAQ](#gotchas) section below.
 
 ### Example 1 — ABM: single-patch outbreak with StateTracker
 
@@ -743,10 +646,6 @@ model.components = [
 The model internally instantiates the component classes when the list is
 assigned.
 
-Do not pass `components` as a constructor argument — it raises
-`TypeError: unexpected keyword argument "components"`. Always assign
-`model.components` as a separate statement after construction.
-
 This applies to all three model types:
 
 - `ABMModel`
@@ -847,12 +746,6 @@ model.components = [
     InfectionProcess
 ]
 ```
-
-Do not instantiate components before adding them. Neither
-`model.components = [InfectionProcess()]` nor
-`model.add_component(InfectionProcess())` works — the model
-constructs component instances internally. Passing an already-created
-instance causes `TypeError: 'InfectionProcess' object is not callable`.
 
 If parameters are needed, use `create_component`:
 
@@ -1044,19 +937,11 @@ model.add_component(InfectionProcess)
 model.add_component(StateTracker)
 ```
 
-Do not add `InitializeEquilibriumStatesProcess` or any other component
-before `VitalDynamicsProcess`. If `VitalDynamicsProcess` is not first,
-the `LaserFrame` is already initialized at the wrong capacity and will
-crash at runtime.
-
 ### 12. `lat` and `lon` columns must be `Float64`, not `Int64`
 
 The scenario schema requires `lat` and `lon` to be floating-point.
 Using Python's `range()` or integer literals produces `Int64` columns,
 which fail Polars schema validation when the model is constructed.
-
-Do not use `[0] * N` or `list(range(N))` for `lat`/`lon` columns —
-Python integer lists produce `Int64` which fails schema validation.
 Always use float literals:
 
 ```python
@@ -1092,19 +977,14 @@ Two dtype requirements that produce cryptic errors if violated:
 Python list comprehensions like `[0, 1, 2]` produce `Int64`, which fails
 schema validation. Use string patch IDs:
 
-Do not use integer lists for `id` — `[0, 1, 2]` produces `Int64` which
-fails schema validation. Always use string patch IDs:
-
 ```python
 # CORRECT — string id
 scenario = pl.DataFrame({"id": ["patch_0", "patch_1", "patch_2"], ...})
 ```
 
 **`pop` (and all integer columns) must be `Int32`, not the default `Int64`.**
-Python integer lists and `np.array(...)` without a dtype both produce `Int64`:
-
-Do not use plain Python integer lists for `pop` — `[100_000, ...]`
-produces `Int64` which fails schema validation. Use `np.array(..., dtype=np.int32)`:
+Python integer lists and `np.array(...)` without a dtype both produce `Int64`.
+Use `np.array(..., dtype=np.int32)`:
 
 ```python
 import numpy as np, polars as pl
@@ -1130,10 +1010,6 @@ handle these dtypes correctly and are the safest way to build test scenarios.
 registers the `etimer` property on the population. Adding `TransmissionProcess`
 as a separate component causes a `ValueError: Property 'etimer' already exists`.
 
-Do not add `TransmissionProcess` separately — `InfectionProcess` already
-creates it internally. Adding `TransmissionProcess` before or alongside
-`InfectionProcess` causes `ValueError: Property 'etimer' already exists`.
-
 ```python
 # CORRECT — InfectionProcess is self-contained; add it alone
 model.add_component(InfectionProcess)
@@ -1149,10 +1025,6 @@ When you index into a tracker's `.S`, `.I`, `.R` (etc.) arrays you get a
 (e.g. `f"{val:.4f}"`) raises `TypeError: unsupported format string`.
 
 Always extract a Python scalar first:
-
-Do not use `tracker.I[tick]` directly in f-string format specs like
-`f"{frac:.4f}"` — `StateArray` does not support format specs and raises
-`TypeError`.
 
 ```python
 # CORRECT — call float() or .item() to get a plain Python float
@@ -1175,10 +1047,6 @@ InvalidOperationError: cannot compare 'date/datetime/time' to a string value
 ```
 
 Build the schedule with `datetime.date` objects (or cast the column):
-
-Do not use string literals like `"2024-06-01"` for the `date` column —
-polars raises `InvalidOperationError` when comparing a string column to
-a date. Always use `datetime.date` objects:
 
 ```python
 import datetime, polars as pl
@@ -1310,11 +1178,6 @@ AttributeError: Can't pickle local object 'run_all_models.<locals>.worker'
 Define worker functions at the **top level** of the module, not inside
 another function:
 
-Do not define worker functions inside another function (closures /
-nested defs) — they cannot be pickled and raise
-`AttributeError: Can't pickle local object`. Define the worker at the
-**top level** of the module:
-
 ```python
 # CORRECT — top-level function is picklable
 def _worker(model_type):
@@ -1388,9 +1251,6 @@ class MyTracker:
 The ABM people LaserFrame stores `date_of_birth` (in ticks), not an `age`
 column. Accessing `model.people.age` raises `AttributeError`. To get age
 in years at a given tick:
-
-Do not access `model.people.age` — that attribute does not exist and raises
-`AttributeError`. Use `date_of_birth` (stored in ticks) instead:
 
 ```python
 # CORRECT — date_of_birth is stored in ticks
@@ -1482,10 +1342,7 @@ For the biweekly model the default order is `['S', 'I', 'R']` (indices 0, 1, 2).
 
 `AgePyramidTracker.age_pyramid` returns a `dict[str, np.ndarray]` where the
 keys are date strings (e.g. `"2000-01-01"`). Indexing with an integer raises
-`KeyError`:
-
-Do not index `age_pyramid` with integers — it is a dict, not a list.
-`tracker.age_pyramid[0]` raises `KeyError: 0`. Use dict access:
+`KeyError: 0`. Use dict access instead:
 
 ```python
 keys = list(tracker.age_pyramid.keys())   # sorted date strings
@@ -1501,13 +1358,9 @@ first_array = next(iter(tracker.age_pyramid.values()))
 
 ### 31. `numpy` has no `cummax` — use `np.maximum.accumulate`
 
-`np.cummax` does not exist in NumPy. The equivalent is `np.maximum.accumulate`:
-
-Do not use `np.cummax` — it does not exist in NumPy and raises
-`AttributeError`. Use `np.maximum.accumulate` instead:
+`np.cummax` does not exist in NumPy. Use `np.maximum.accumulate` instead:
 
 ```python
-# CORRECT
 result = np.maximum.accumulate(arr)
 ```
 
@@ -1551,9 +1404,6 @@ model.components = [
     ),
 ]
 ```
-
-Do not write `params={"beta": 1.2}` — this will fail immediately at model
-construction with `AttributeError: 'dict' object has no attribute 'verbose'`.
 
 ### 34. Do not use try/except import blocks or dict fallbacks for params
 

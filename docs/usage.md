@@ -7,11 +7,11 @@ It provides a flexible, component-based architecture for disease simulation with
 
 Key features include:
 
-- **Spatial modeling**: Support for geographic regions with administrative boundaries and population distributions
-- **Multiple model types**: ABM, Biweekly, and Compartmental models for different use cases
-- **Component-based architecture**: Interchangeable disease dynamics components
-- **High-performance computing**: Optimized data structures and Numba JIT compilation
-- **Type-safe parameters**: Pydantic-based configuration management
+- **Three model architectures**: agent-based (ABM), biweekly compartmental (SIR, 14-day timesteps), and daily compartmental (SEIR), each offering different trade-offs between temporal resolution and computational cost
+- **Spatial simulation**: multi-patch geography with administrative boundaries, population distributions, and configurable migration between patches
+- **Component-based design**: interchangeable process and tracker components that plug into any model type
+- **High-performance computing**: Numba JIT-compiled hot paths and Polars-backed data manipulation for fast large-scale simulations
+- **Type-validated parameters**: Pydantic parameter classes with built-in validation for all model and component settings
 
 ## Installation and Setup
 
@@ -33,7 +33,7 @@ uv pip install -e ".[full]"
 pip install -e ".[dev]"
 ```
 
-**Major Dependencies:**
+**Dependencies:**
 
 - `laser-core>=1.0.0`: Core LASER framework
 - `pydantic>=2.0`: Parameter validation and serialization
@@ -148,31 +148,6 @@ params = CompartmentalParams(
 model = CompartmentalModel(scenario_data, params)
 model.run()
 ```
-
-!!! warning
-
-    **All three model constructors require both** `scenario` **and** `params`.
-    There is no default — omitting `params` raises `TypeError` immediately:
-
-    Do not pass only `scenario` to the constructor — omitting `params`
-    raises `TypeError: missing 1 required positional argument: 'params'`.
-
-    Always create the `*Params` object first, then pass both to the constructor:
-
-    ```python
-    # CORRECT — both arguments are required
-    params = ABMParams(num_ticks=365, seed=42, start_time="2000-01")
-    model  = ABMModel(scenario=scenario, params=params)
-
-    params = BiweeklyParams(num_ticks=130, seed=42, start_time="2000-01")
-    model  = BiweeklyModel(scenario=scenario, params=params)
-
-    params = CompartmentalParams(num_ticks=730, seed=42, start_time="2000-01")
-    model  = CompartmentalModel(scenario=scenario, params=params)
-    ```
-
-    Components are added **after** construction via `model.add_component()`.
-    `params` configures duration, seed, and start date — not components.
 
 ---
 
@@ -888,10 +863,15 @@ scenario = pl.DataFrame({
 })
 ```
 
-### 9. Use `laser.measles.scenarios.synthetic` for test scenarios
+### 9. Use `laser.measles.scenarios` for test scenarios — not model subpackages
 
-The `synthetic` module provides ready-made scenario DataFrames for
-testing and development. It is available via several import paths:
+Scenario helpers (`single_patch_scenario`, `two_patch_scenario`,
+`two_cluster_scenario`, etc.) are exported from `laser.measles` and
+`laser.measles.scenarios`. They are **not** available from model-specific
+subpackages. Importing from `laser.measles.abm`, `laser.measles.biweekly`,
+or `laser.measles.compartmental` raises `ImportError`.
+
+The `synthetic` module also provides these functions and is available via:
 
 ```python
 # Functions re-exported at the scenarios package level
@@ -905,8 +885,12 @@ scenario = synthetic.single_patch_scenario(population=50_000, mcv1_coverage=0.85
 # synthetic is also re-exported at the top level
 from laser.measles import synthetic
 
-# WRONG — laser_measles (underscore) does not exist
+# WRONG — underscore package name does not exist
 from laser_measles.scenarios import synthetic
+
+# WRONG — not re-exported from model subpackages
+from laser.measles.abm import single_patch_scenario
+from laser.measles.biweekly import single_patch_scenario
 ```
 
 Each function returns a `polars.DataFrame` with all required columns
@@ -1025,18 +1009,19 @@ The following attributes do not exist on any tracker and will raise
 `tracker.df`. Use `get_dataframe()` for global trackers or `.state_tracker`
 for per-patch trackers.
 
-### 11. `VitalDynamicsProcess` must be the first component
+### 11. `VitalDynamicsProcess` must be the first component (`ABMModel` only)
 
-When using vital dynamics (births and deaths), `VitalDynamicsProcess` must
-be the **first** component added to the model.
+**This ordering rule applies to `ABMModel` only.** In `BiweeklyModel` and
+`CompartmentalModel`, `VitalDynamicsProcess` may appear anywhere in the
+component list.
 
-This is because `VitalDynamicsProcess` calls `calculate_capacity` to
+In the ABM, `VitalDynamicsProcess` calls `calculate_capacity` to
 pre-allocate the `LaserFrame` with enough headroom for the births that will
 occur over the simulation. If any other component is added first, the
 `LaserFrame` is already initialized at the wrong size, which causes a crash.
 
 ```python
-# CORRECT
+# CORRECT — ABMModel: VitalDynamicsProcess must be first
 model.add_component(VitalDynamicsProcess)        # FIRST
 model.add_component(InitializeEquilibriumStatesProcess)
 model.add_component(ImportationPressureProcess)
@@ -1045,9 +1030,8 @@ model.add_component(StateTracker)
 ```
 
 Do not add `InitializeEquilibriumStatesProcess` or any other component
-before `VitalDynamicsProcess`. If `VitalDynamicsProcess` is not first,
-the `LaserFrame` is already initialized at the wrong capacity and will
-crash at runtime.
+before `VitalDynamicsProcess` in an `ABMModel`. The `LaserFrame` will be
+initialized at the wrong capacity and will crash at runtime.
 
 ### 12. `lat` and `lon` columns must be `Float64`, not `Int64`
 
@@ -1084,9 +1068,9 @@ BiweeklyParams(num_ticks=5 * 26)      # 130 biweekly ticks
 CompartmentalParams(num_ticks=5 * 365) # 1825 daily ticks
 ```
 
-### 14. Scenario `id` must be a string; `pop` must be `Int32`
+### 14. Scenario `id` must be a string; `pop` must be `Int32`, not `Int64` or float
 
-Two dtype requirements that produce cryptic errors if violated:
+Three dtype requirements that produce cryptic validation errors if violated:
 
 **`id` must be a string (`str` / `Utf8`), not an integer.**
 Python list comprehensions like `[0, 1, 2]` produce `Int64`, which fails
@@ -1121,8 +1105,21 @@ scenario = pl.DataFrame({"pop": [100_000, 80_000, 60_000], ...}).with_columns(
 )
 ```
 
+**`pop` must also not be a float.** The validator requires an integer type —
+passing floats raises `ValueError: DataFrame validation error: Column 'pop' must be integer type`.
+Use `pl.Series(..., dtype=pl.Int32)` or cast after construction:
+
+```python
+scenario = pl.DataFrame({
+    "pop":  pl.Series([100_000, 50_000], dtype=pl.Int32),
+    ...
+})
+# or cast after the fact:
+scenario = scenario.with_columns(pl.col("pop").cast(pl.Int32))
+```
+
 The scenario helper functions (`single_patch_scenario`, `two_patch_scenario`, etc.)
-handle these dtypes correctly and are the safest way to build test scenarios.
+handle all of these dtypes correctly and are the safest way to build test scenarios.
 
 ### 15. Do NOT add `TransmissionProcess` separately when using `InfectionProcess` (ABM)
 
@@ -1231,10 +1228,12 @@ at the end of a run:
 ```python
 import numpy as np
 from laser.measles.abm import StateTracker, StateTrackerParams
+from laser.measles import create_component
 
 # Add per-patch tracker
-model.add_component(StateTracker,
-                    params=StateTrackerParams(aggregation_level=0))
+model.add_component(
+    create_component(StateTracker, params=StateTrackerParams(aggregation_level=0))
+)
 
 model.run()
 
@@ -1271,6 +1270,7 @@ gives shape `(n_states,)` which cannot be divided by a 100-element pop array.
 from laser.measles.scenarios import two_cluster_scenario
 from laser.measles.biweekly import BiweeklyModel, BiweeklyParams
 from laser.measles.biweekly import StateTracker, StateTrackerParams
+from laser.measles import create_component
 
 scenario = two_cluster_scenario()   # 100 patches
 
@@ -1278,8 +1278,9 @@ params = BiweeklyParams(...)
 model  = BiweeklyModel(scenario, params)
 
 # Add per-patch tracker
-model.add_component(StateTracker,
-                    params=StateTrackerParams(aggregation_level=0))
+model.add_component(
+    create_component(StateTracker, params=StateTrackerParams(aggregation_level=0))
+)
 model.run()
 
 st = model.get_instance(StateTracker)[0]
@@ -1328,26 +1329,7 @@ def run_all_models():
 Alternatively, use `concurrent.futures.ProcessPoolExecutor` with
 `functools.partial` if you need to pass extra arguments.
 
-### 22. Scenario helpers are in `laser.measles` or `laser.measles.scenarios`, not in subpackages
-
-Scenario generators (`single_patch_scenario`, `two_patch_scenario`,
-`two_cluster_scenario`, etc.) are exported from `laser.measles` and
-`laser.measles.scenarios`. They are **not** available from the model-specific
-subpackages (`laser.measles.abm`, `laser.measles.biweekly`, etc.).
-
-Do not import scenario helpers from `laser.measles.abm`,
-`laser.measles.biweekly`, or `laser.measles.compartmental` — they are
-not defined there and will raise `ImportError`. Always import them from
-`laser.measles` or `laser.measles.scenarios`:
-
-```python
-# CORRECT
-from laser.measles import single_patch_scenario
-# or
-from laser.measles.scenarios import single_patch_scenario
-```
-
-### 23. `SIACalendarParams.aggregation_level` must be ≥ 1
+### 22. `SIACalendarParams.aggregation_level` must be ≥ 1
 
 `SIACalendarParams` validates that `aggregation_level >= 1`. Passing 0 raises:
 
@@ -1364,7 +1346,7 @@ params = SIACalendarParams(aggregation_level=1, sia_schedule=schedule_df, ...)
 
 For hierarchical IDs like `"country:state:lga"`, use `aggregation_level=3`.
 
-### 24. Custom components added via `add_component` must accept `verbose`
+### 23. Custom components added via `add_component` must accept `verbose`
 
 `ABMModel.add_component(ComponentClass)` instantiates the class as
 `ComponentClass(model, verbose=False)`. Any custom component class must
@@ -1383,7 +1365,7 @@ class MyTracker:
         # ...
 ```
 
-### 25. `model.people` has `date_of_birth`, not `age`
+### 24. `model.people` has `date_of_birth`, not `age`
 
 The ABM people LaserFrame stores `date_of_birth` (in ticks), not an `age`
 column. Accessing `model.people.age` raises `AttributeError`. To get age
@@ -1403,32 +1385,7 @@ age_years  = age_ticks / 365.0
 Available people properties: `state`, `susceptibility`, `patch_id`,
 `active`, `date_of_birth`, `date_of_vaccination`.
 
-### 26. Scenario `pop` column must be integer (`Int32`), not float
-
-The scenario DataFrame validator requires `pop` to be an integer type.
-Passing a float column raises:
-
-```
-ValueError: DataFrame validation error: Column 'pop' must be integer type
-```
-
-Cast `pop` to `Int32` when building a scenario:
-
-```python
-import polars as pl
-
-scenario = pl.DataFrame({
-    "id":   ["patch_0", "patch_1"],
-    "lat":  [0.0, 1.0],
-    "lon":  [0.0, 1.0],
-    "pop":  pl.Series([100_000, 50_000], dtype=pl.Int32),
-    "mcv1": [0.8, 0.7],
-})
-# or cast after the fact:
-scenario = scenario.with_columns(pl.col("pop").cast(pl.Int32))
-```
-
-### 27. polars `with_column` (singular) was removed — use `with_columns`
+### 25. polars `with_column` (singular) was removed — use `with_columns`
 
 Older polars had `DataFrame.with_column(expr)` (singular). Current polars only
 has `with_columns(*exprs)` (plural). Using the singular form raises:
@@ -1445,7 +1402,7 @@ Always use the plural form `with_columns` (not `with_column`):
 df = df.with_columns(pl.col("pop").cast(pl.Int32))
 ```
 
-### 28. `get_mixing_matrix()` takes no arguments — pass `scenario` at construction
+### 26. `get_mixing_matrix()` takes no arguments — pass `scenario` at construction
 
 All mixing models (GravityMixing, RadiationMixing, etc.) accept the scenario
 at construction time, not at `get_mixing_matrix()` call time. Calling
@@ -1464,7 +1421,7 @@ mixer = RadiationMixing(scenario=scenario, params=RadiationParams())
 mixing_matrix = mixer.get_mixing_matrix()   # no arguments
 ```
 
-### 29. `lookup_state_idx` does not exist — use `params.states.index()`
+### 27. `lookup_state_idx` does not exist — use `params.states.index()`
 
 There is no `lookup_state_idx` function exported from `laser.measles`. To find
 state indices, use the `states` list on the model params:
@@ -1478,7 +1435,7 @@ R_IDX = params.states.index('R')
 
 For the biweekly model the default order is `['S', 'I', 'R']` (indices 0, 1, 2).
 
-### 30. `AgePyramidTracker.age_pyramid` is a dict keyed by date strings — not an array
+### 28. `AgePyramidTracker.age_pyramid` is a dict keyed by date strings — not an array
 
 `AgePyramidTracker.age_pyramid` returns a `dict[str, np.ndarray]` where the
 keys are date strings (e.g. `"2000-01-01"`). Indexing with an integer raises
@@ -1499,7 +1456,7 @@ Or iterate:
 first_array = next(iter(tracker.age_pyramid.values()))
 ```
 
-### 31. `numpy` has no `cummax` — use `np.maximum.accumulate`
+### 29. `numpy` has no `cummax` — use `np.maximum.accumulate`
 
 `np.cummax` does not exist in NumPy. The equivalent is `np.maximum.accumulate`:
 
@@ -1511,7 +1468,7 @@ Do not use `np.cummax` — it does not exist in NumPy and raises
 result = np.maximum.accumulate(arr)
 ```
 
-### 32. `AgePyramidTracker.age_pyramid` key format — do not hardcode date strings
+### 30. `AgePyramidTracker.age_pyramid` key format — do not hardcode date strings
 
 The keys of `age_pyramid` are date strings generated internally and may not
 match the format you expect (e.g. `'2005-01-01'` vs `'2005-1-1'`). Always
@@ -1525,7 +1482,7 @@ end_pyramid   = tracker.age_pyramid[keys[-1]]  # last snapshot
 
 Never do `tracker.age_pyramid['2005-01-01']` — use `keys[-1]` instead.
 
-### 33. Never pass a plain dict as `params` to `create_component` or model constructors
+### 31. Never pass a plain dict as `params` to `create_component` or model constructors
 
 All params objects (`ABMParams`, `BiweeklyParams`, `InfectionParams`, etc.)
 are **Pydantic models**, not plain dicts. Passing a dict raises
@@ -1555,7 +1512,7 @@ model.components = [
 Do not write `params={"beta": 1.2}` — this will fail immediately at model
 construction with `AttributeError: 'dict' object has no attribute 'verbose'`.
 
-### 34. Do not use try/except import blocks or dict fallbacks for params
+### 32. Do not use try/except import blocks or dict fallbacks for params
 
 Do not write defensive import blocks like:
 
@@ -1569,3 +1526,12 @@ except ImportError:
 and then fall back to passing a dict as params. These fallback patterns
 produce broken code. If an import fails, fix the import path rather than
 working around it. Consult gotcha #2 for correct import paths.
+
+---
+
+## See also
+
+- **[Installation](install.md)** — system requirements and environment setup before running any model
+- **[Tutorials](tutorials/)** — step-by-step guided examples for first-time users building their first model
+- **[API reference](reference/)** — complete parameter listings for all model, component, and scenario classes
+- **[What's new](whatsnew.md)** — recent changes, including breaking API changes between versions

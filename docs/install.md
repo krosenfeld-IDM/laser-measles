@@ -1,86 +1,100 @@
 # Installation
 
-At the command line:
+This guide shows you how to install laser-measles and set up your environment for use or development.
+
+## Prerequisites
+
+- Python 3.10 or later
+
+## Install laser-measles
+
+Install the latest stable release from PyPI:
 
 ```bash
 pip install laser-measles
 ```
 
-You can also install the in-development version with:
+**Recommended stable release:** For new projects, pin to the 0.10.x release line, which is validated and supported for most use cases:
+
+```bash
+pip install "laser-measles>=0.10,<1.0"
+```
+
+To install the latest in-development version directly from GitHub:
 
 ```bash
 pip install git+https://github.com/InstituteforDiseaseModeling/laser-measles.git@main
 ```
 
-## Optional Dependencies
+## Install optional dependencies
 
-The package supports several optional dependency groups that can be installed for additional functionality:
+The package includes optional dependency groups for specific workflows. Install them using bracket notation:
 
 ```bash
 # Development dependencies (testing, linting)
-pip install laser-measles[dev]
+pip install "laser-measles[dev]"
 
 # Documentation dependencies (MkDocs, mkdocstrings)
-pip install laser-measles[docs]
+pip install "laser-measles[docs]"
 
-# Example dependencies (Jupyter, notebooks, plotting)
-pip install laser-measles[examples]
+# Example and tutorial dependencies (Jupyter, notebooks, plotting)
+pip install "laser-measles[examples]"
 
 # All optional dependencies
-pip install laser-measles[full]
+pip install "laser-measles[full]"
 ```
 
-### Dependency Groups
+### What each group includes
 
-**dev**: Development tools for testing and code quality
+**dev** — Testing and code quality tools
 
-- pytest: Testing framework
-- pytest-order: Ordered test execution
+- `pytest`: Testing framework
+- `pytest-order`: Ordered test execution
 
-**docs**: Documentation building tools
+**docs** — Documentation building tools
 
-- mkdocs-material: MkDocs theme with extensive functionality
-- mkdocstrings-python: API reference generation from docstrings
-- mkdocs-jupyter: Jupyter notebook rendering
-- mkdocs-gen-files, mkdocs-literate-nav: Auto-generated API navigation
+- `mkdocs-material`: MkDocs theme
+- `mkdocstrings-python`: API reference generation from docstrings
+- `mkdocs-jupyter`: Jupyter notebook rendering
+- `mkdocs-gen-files`, `mkdocs-literate-nav`: Auto-generated API navigation
 
-**examples**: Tools for running examples and tutorials
+**examples** — Tools for running examples and tutorials
 
-- jupytext: Jupyter notebook text conversion
-- notebook: Jupyter notebook interface
-- seaborn: Statistical data visualization
-- ipykernel: Jupyter kernel support
+- `jupytext`: Jupyter notebook text conversion
+- `notebook`: Jupyter notebook interface
+- `seaborn`: Statistical data visualization
+- `ipykernel`: Jupyter kernel support
 
-**full**: All optional dependencies combined
+**full** — All of the above groups combined
 
-- Includes all packages from dev, docs, and examples groups
+## Set up a development environment
 
-## Development
-
-You can use this github codespace for fast development:
+If you are contributing to laser-measles, use the GitHub Codespace for a pre-configured environment:
 
 <a href='https://codespaces.new/InstituteforDiseaseModeling/laser-measles'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
 
-To run all the tests run:
+### Run the tests
 
 ```bash
 tox
 ```
 
-And to build the documentation run:
+To combine coverage data across all tox environments (useful when running tox with multiple Python versions):
+
+| Platform | Command |
+|----------|---------|
+| Windows  | `set PYTEST_ADDOPTS=--cov-append` then `tox` |
+| Other    | `PYTEST_ADDOPTS=--cov-append tox` |
+
+### Build the documentation
 
 ```bash
 tox -e docs
 ```
 
-Note, to combine the coverage data from all the tox environments run:
+### Check version bumping
 
-| Platform | Command |
-|----------|---------|
-| Windows | `set PYTEST_ADDOPTS=--cov-append` then `tox` |
-| Other | `PYTEST_ADDOPTS=--cov-append tox` |
-
-You can check that the bump versioning works by running:
+To verify the version bump configuration without making any changes, run:
 
 ```bash
 uvx bump-my-version bump minor --dry-run -vv

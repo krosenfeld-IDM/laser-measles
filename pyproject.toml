@@ -48,7 +48,7 @@ dependencies = [
   "polars>=1.0.0",
   "rastertoolkit>=0.3.11",
   "typer>=0.9",
-  "patito>=0.8",
+  "patito>=0.8.6",
   "pyvd>=1.0",
 ]
 

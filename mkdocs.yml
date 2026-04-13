@@ -34,6 +34,11 @@ nav:
   - Home: index.md
   - Installation: install.md
   - Usage: usage.md
+  - How-to guides:
+    - how-to/index.md
+    - How to run an ABM outbreak model: how-to/run-abm-model.md
+    - How to run a multi-patch biweekly model: how-to/run-biweekly-model.md
+    - How to run a Compartmental R0 sweep: how-to/run-compartmental-model.md
   - Tutorials:
     - tutorials/index.md
     - Quick Start: tutorials/tut_quickstart_hello_world.ipynb
@@ -51,6 +56,7 @@ nav:
       - State Arrays: tutorials/tut_state_arrays.ipynb
     - End-to-end tutorials:
       - Vaccination: tutorials/tut_vaccination.ipynb
+  - Troubleshooting: troubleshooting.md
   - API reference: reference/
   - Authors: authors.md
 

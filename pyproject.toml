@@ -149,7 +149,7 @@ replace = '__version__ = "{new_version}"'
 dev = [
     "ruff",
     "pytest",
-    "pytest-order>=1.1.1",
+    "pytest-order>=1.3.0",
     "pyright",
     "mypy",
     "bump-my-version"
@@ -180,7 +180,7 @@ examples = [
 full = [
     "ruff",
     "pytest",
-    "pytest-order>=1.1.1",
+    "pytest-order>=1.3.0",
     "pyright",
     "mypy",
     "bump-my-version",

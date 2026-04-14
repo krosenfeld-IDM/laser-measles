@@ -174,7 +174,7 @@ examples = [
     "notebook>=7.4.3",
     "seaborn>=0.13.2",
     "ipykernel>=7.2.0",
-    "optuna>=4.4.0",
+    "optuna>=4.8.0",
     "plotly>=6.2.0",
 ]
 full = [
@@ -201,6 +201,6 @@ full = [
     "notebook>=7.4.3",
     "seaborn>=0.13.2",
     "ipykernel>=7.2.0",
-    "optuna>=4.4.0",
+    "optuna>=4.8.0",
     "plotly>=6.2.0",
 ]

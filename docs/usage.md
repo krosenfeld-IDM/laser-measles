@@ -309,7 +309,7 @@ class MyInfectionProcess(BaseInfectionProcess):
         # Initialize with validated parameters
 
 # Add to model
-model.components = [MyInfectionProcess]
+model.add_component(MyInfectionProcess)
 ```
 
 ---
@@ -321,18 +321,11 @@ These end-to-end scripts are copy-paste runnable. Each one shows the
 wiring, running, and result retrieval — with detailed inline comments on
 every line that commonly causes errors.
 
-### The three non-negotiable constructor facts
+### Constructor requirements
 
-!!! warning
+Three rules apply to every model type without exception. They are the source of the most common runtime failures. See the [Gotchas & FAQ](#gotchas) section for full details, including the exact errors each violation raises.
 
-    **Read this before writing any model code.**
-
-    These three facts are the source of the most common runtime failures.
-    They apply to every model type without exception.
-
-**Fact 1 — The only three model classes are** `ABMModel`, `BiweeklyModel`, `CompartmentalModel`
-
-Import them from their respective subpackages:
+**Rule 1 — Import model classes from their subpackages.**
 
 ```python
 from laser.measles.abm           import ABMModel,           ABMParams
@@ -340,73 +333,25 @@ from laser.measles.biweekly      import BiweeklyModel,      BiweeklyParams
 from laser.measles.compartmental import CompartmentalModel, CompartmentalParams
 ```
 
-!!! warning
+There is no top-level `lm` object, no `lm.BiweeklyModel`, and no `lm.create_model()`. See [gotcha #4](#4-there-is-no-lm-object-in-lasermeasles) and [gotcha #1](#1-where-does-create_component-come-from) for import paths.
 
-    The following names **do not exist** in the package and will raise
-    `AttributeError` or `ImportError`:
-
-    ```python
-    lm.abm.Model          # ← does not exist
-    lm.abm.ABM            # ← does not exist
-    lm.abm.LaserABM       # ← does not exist
-    lm.Model              # ← does not exist
-    lm.BiweeklyModel      # ← does not exist
-    lm.CompartmentalModel # ← does not exist
-    lm.create_model(...)  # ← does not exist
-    ```
-
-    There is no convenience shortcut. Always import from the subpackage.
-
-**Fact 2 — The constructor signature is always** `Model(scenario, params)`
+**Rule 2 — The constructor signature is always** `Model(scenario, params)`.
 
 ```python
 params = ABMParams(num_ticks=365, seed=42)      # ALL settings go here
-model  = ABMModel(scenario, params)              # then params goes here
+model  = ABMModel(scenario, params)             # params is mandatory
 ```
 
-!!! warning
+`params` is not optional. All simulation settings (duration, seed, start date) go into the `*Params` object. See [gotcha #2](#2-how-do-i-access-component-classes-and-their-parameter-classes) for component import patterns.
 
-    **params is not optional.** Calling the constructor with only a scenario
-    raises `TypeError` immediately, before the simulation runs:
-
-    ```python
-    ABMModel(scenario=scenario)                   # TypeError: missing 1 required positional argument: 'params'
-    BiweeklyModel(scenario=scenario)              # TypeError: missing 1 required positional argument: 'params'
-    CompartmentalModel(scenario=scenario)         # TypeError: missing 1 required positional argument: 'params'
-    ```
-
-    The `*Params` object is always the **second positional argument**.
-    It is mandatory — there is no default and no shortcut.
-
-    Passing simulation settings directly as keyword arguments also fails:
-
-    ```python
-    ABMModel(scenario, num_ticks=365)             # TypeError
-    ABMModel(scenario, n_ticks=365)               # TypeError
-    ABMModel(scenario, seed=42)                   # TypeError
-    ABMModel(scenario, params, components=[...])  # TypeError
-    BiweeklyModel(scenario, n_ticks=26)           # TypeError
-    CompartmentalModel(scenario, num_ticks=730)   # TypeError
-    ```
-
-    Every simulation setting — duration, seed, start date, verbosity —
-    goes into the `*Params` object. Then the populated `*Params`
-    object is the second argument to the model constructor.
-
-**Fact 3 —** `start_time` **must be** `"YYYY-MM"`, **never** `"YYYY-MM-DD"`
+**Rule 3 —** `start_time` **must be** `"YYYY-MM"`, **never** `"YYYY-MM-DD"`.
 
 ```python
 # CORRECT — "YYYY-MM" format
 params = ABMParams(num_ticks=365, seed=42, start_time="2000-01")
 ```
 
-!!! warning
-
-    Passing a full date string raises a Pydantic `ValidationError` at
-    construction time, before the simulation runs:
-
-    Do not pass a full date string like `"2000-01-01"` — it raises
-    `ValidationError: start_time must be in 'YYYY-MM' format`.
+Passing `"2000-01-01"` raises `ValidationError: start_time must be in 'YYYY-MM' format` at construction time.
 
 ### Example 1 — ABM: single-patch outbreak with StateTracker
 
@@ -720,17 +665,24 @@ The same pattern applies to biweekly and compartmental — import directly from
     `NoBirthsProcess` and `SIACalendarProcess` exist in the ABM subpackage only —
     there is no equivalent in the biweekly or compartmental subpackages.
 
-### 3. `model.components` is assigned *after* construction
+### 3. Components are added *after* construction
 
 The model constructors only accept `scenario` and `params`.
 
-Components must be attached by assigning to `model.components` **after**
-the model object is created.
+Components must be added **after** the model object is created. Two
+equivalent patterns are supported:
 
 ```python
-# CORRECT
+# PREFERRED — add components one at a time
 model = BiweeklyModel(scenario=scenario, params=params)
+model.add_component(InitializeEquilibriumStatesProcess)
+model.add_component(ImportationPressureProcess)
+model.add_component(InfectionProcess)
+model.add_component(VitalDynamicsProcess)
+model.add_component(StateTracker)
 
+# ALSO CORRECT — assign the full list at once
+model = BiweeklyModel(scenario=scenario, params=params)
 model.components = [
     InitializeEquilibriumStatesProcess,
     ImportationPressureProcess,
@@ -740,18 +692,12 @@ model.components = [
 ]
 ```
 
-The model internally instantiates the component classes when the list is
-assigned.
+Both patterns are equivalent. `add_component()` is used throughout
+the worked examples. Do not pass `components` as a constructor argument —
+it raises `TypeError: unexpected keyword argument "components"`.
 
-Do not pass `components` as a constructor argument — it raises
-`TypeError: unexpected keyword argument "components"`. Always assign
-`model.components` as a separate statement after construction.
-
-This applies to all three model types:
-
-- `ABMModel`
-- `BiweeklyModel`
-- `CompartmentalModel`
+This applies to all three model types: `ABMModel`, `BiweeklyModel`,
+and `CompartmentalModel`.
 
 ### 4. There is no `lm` object in `laser.measles`
 
@@ -1025,10 +971,10 @@ The following attributes do not exist on any tracker and will raise
 `tracker.df`. Use `get_dataframe()` for global trackers or `.state_tracker`
 for per-patch trackers.
 
-### 11. `VitalDynamicsProcess` must be the first component
+### 11. `VitalDynamicsProcess` must be the first component (ABM only)
 
-When using vital dynamics (births and deaths), `VitalDynamicsProcess` must
-be the **first** component added to the model.
+When using `ABMModel` with vital dynamics (births and deaths),
+`VitalDynamicsProcess` must be the **first** component added to the model.
 
 This is because `VitalDynamicsProcess` calls `calculate_capacity` to
 pre-allocate the `LaserFrame` with enough headroom for the births that will
@@ -1036,7 +982,7 @@ occur over the simulation. If any other component is added first, the
 `LaserFrame` is already initialized at the wrong size, which causes a crash.
 
 ```python
-# CORRECT
+# CORRECT — ABMModel with vital dynamics
 model.add_component(VitalDynamicsProcess)        # FIRST
 model.add_component(InitializeEquilibriumStatesProcess)
 model.add_component(ImportationPressureProcess)
@@ -1045,9 +991,15 @@ model.add_component(StateTracker)
 ```
 
 Do not add `InitializeEquilibriumStatesProcess` or any other component
-before `VitalDynamicsProcess`. If `VitalDynamicsProcess` is not first,
-the `LaserFrame` is already initialized at the wrong capacity and will
-crash at runtime.
+before `VitalDynamicsProcess` in an `ABMModel`. If `VitalDynamicsProcess`
+is not first, the `LaserFrame` is already initialized at the wrong capacity
+and will crash at runtime.
+
+!!! note
+
+    This ordering constraint applies to `ABMModel` only. In `BiweeklyModel`
+    and `CompartmentalModel`, `VitalDynamicsProcess` may be added in any
+    position relative to other components.
 
 ### 12. `lat` and `lon` columns must be `Float64`, not `Int64`
 
@@ -1092,19 +1044,14 @@ Two dtype requirements that produce cryptic errors if violated:
 Python list comprehensions like `[0, 1, 2]` produce `Int64`, which fails
 schema validation. Use string patch IDs:
 
-Do not use integer lists for `id` — `[0, 1, 2]` produces `Int64` which
-fails schema validation. Always use string patch IDs:
-
 ```python
 # CORRECT — string id
 scenario = pl.DataFrame({"id": ["patch_0", "patch_1", "patch_2"], ...})
 ```
 
 **`pop` (and all integer columns) must be `Int32`, not the default `Int64`.**
-Python integer lists and `np.array(...)` without a dtype both produce `Int64`:
-
-Do not use plain Python integer lists for `pop` — `[100_000, ...]`
-produces `Int64` which fails schema validation. Use `np.array(..., dtype=np.int32)`:
+Python integer lists and `np.array(...)` without a dtype both produce `Int64`.
+Use `np.array(..., dtype=np.int32)`:
 
 ```python
 import numpy as np, polars as pl
@@ -1231,10 +1178,15 @@ at the end of a run:
 ```python
 import numpy as np
 from laser.measles.abm import StateTracker, StateTrackerParams
+from laser.measles import create_component
 
 # Add per-patch tracker
-model.add_component(StateTracker,
-                    params=StateTrackerParams(aggregation_level=0))
+model.add_component(
+    create_component(
+        StateTracker,
+        params=StateTrackerParams(aggregation_level=0),
+    )
+)
 
 model.run()
 
@@ -1271,6 +1223,7 @@ gives shape `(n_states,)` which cannot be divided by a 100-element pop array.
 from laser.measles.scenarios import two_cluster_scenario
 from laser.measles.biweekly import BiweeklyModel, BiweeklyParams
 from laser.measles.biweekly import StateTracker, StateTrackerParams
+from laser.measles import create_component
 
 scenario = two_cluster_scenario()   # 100 patches
 
@@ -1278,8 +1231,12 @@ params = BiweeklyParams(...)
 model  = BiweeklyModel(scenario, params)
 
 # Add per-patch tracker
-model.add_component(StateTracker,
-                    params=StateTrackerParams(aggregation_level=0))
+model.add_component(
+    create_component(
+        StateTracker,
+        params=StateTrackerParams(aggregation_level=0),
+    )
+)
 model.run()
 
 st = model.get_instance(StateTracker)[0]
@@ -1309,11 +1266,6 @@ AttributeError: Can't pickle local object 'run_all_models.<locals>.worker'
 
 Define worker functions at the **top level** of the module, not inside
 another function:
-
-Do not define worker functions inside another function (closures /
-nested defs) — they cannot be pickled and raise
-`AttributeError: Can't pickle local object`. Define the worker at the
-**top level** of the module:
 
 ```python
 # CORRECT — top-level function is picklable

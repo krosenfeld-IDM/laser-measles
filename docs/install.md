@@ -1,87 +1,129 @@
 # Installation
 
-At the command line:
+This page covers how to install `laser-measles` for use or development.
+
+## Prerequisites
+
+- Python 3.10 or later
+
+## Install from PyPI
+
+Install the latest stable release:
 
 ```bash
 pip install laser-measles
 ```
 
-You can also install the in-development version with:
+## Install the development version
+
+To install the latest unreleased code directly from the `main` branch:
 
 ```bash
 pip install git+https://github.com/InstituteforDiseaseModeling/laser-measles.git@main
 ```
 
-## Optional Dependencies
+!!! warning
+    Development versions may contain breaking changes or unstable features. Use the stable release for production work.
 
-The package supports several optional dependency groups that can be installed for additional functionality:
+## Optional dependencies
+
+`laser-measles` provides optional dependency groups for specific use cases:
 
 ```bash
-# Development dependencies (testing, linting)
+# Development tools (testing, linting, type checking)
 pip install laser-measles[dev]
 
-# Documentation dependencies (MkDocs, mkdocstrings)
+# Documentation build tools (MkDocs and plugins)
 pip install laser-measles[docs]
 
-# Example dependencies (Jupyter, notebooks, plotting)
+# Examples and notebook support
 pip install laser-measles[examples]
 
 # All optional dependencies
 pip install laser-measles[full]
 ```
 
-### Dependency Groups
+### What each group includes
 
-**dev**: Development tools for testing and code quality
+**`dev`** — Tools for testing, linting, and code quality:
 
-- pytest: Testing framework
-- pytest-order: Ordered test execution
+| Package | Purpose |
+|---------|---------|
+| `ruff` | Linting and formatting |
+| `pytest` | Testing framework |
+| `pytest-order` | Ordered test execution |
+| `pyright` | Static type checking |
+| `mypy` | Static type checking |
+| `bump-my-version` | Version management |
 
-**docs**: Documentation building tools
+**`docs`** — Tools for building the documentation site:
 
-- mkdocs-material: MkDocs theme with extensive functionality
-- mkdocstrings-python: API reference generation from docstrings
-- mkdocs-jupyter: Jupyter notebook rendering
-- mkdocs-gen-files, mkdocs-literate-nav: Auto-generated API navigation
+| Package | Purpose |
+|---------|---------|
+| `mkdocs-material` | MkDocs theme |
+| `mkdocstrings-python` | API reference generation from docstrings |
+| `mkdocs-jupyter` | Jupyter notebook rendering |
+| `mkdocs-gen-files`, `mkdocs-literate-nav` | Auto-generated API navigation |
+| `mkdocs-include-markdown-plugin` | Include external Markdown files |
+| `mkdocs-autorefs`, `mkdocs-api-autonav` | API cross-referencing and navigation |
+| `mkdocs-table-reader-plugin`, `mkdocs-exclude` | Table reading and file exclusion |
 
-**examples**: Tools for running examples and tutorials
+**`examples`** — Tools for running examples and tutorials:
 
-- jupytext: Jupyter notebook text conversion
-- notebook: Jupyter notebook interface
-- seaborn: Statistical data visualization
-- ipykernel: Jupyter kernel support
+| Package | Purpose |
+|---------|---------|
+| `jupytext` | Jupyter notebook text conversion |
+| `notebook` | Jupyter notebook interface |
+| `seaborn` | Statistical data visualization |
+| `ipykernel` | Jupyter kernel support |
+| `optuna` | Hyperparameter optimization |
+| `plotly` | Interactive plotting |
 
-**full**: All optional dependencies combined
+**`full`** — All optional dependencies combined (includes all packages from `dev`, `docs`, and `examples`).
 
-- Includes all packages from dev, docs, and examples groups
+## Setting up for development
 
-## Development
+### Using GitHub Codespaces
 
-You can use this github codespace for fast development:
+For a pre-configured cloud development environment, open the repository in GitHub Codespaces:
 
 <a href='https://codespaces.new/InstituteforDiseaseModeling/laser-measles'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
 
-To run all the tests run:
+### Local development setup
 
-```bash
-tox
-```
+1. Clone the repository and install with development dependencies:
 
-And to build the documentation run:
+    ```bash
+    git clone https://github.com/InstituteforDiseaseModeling/laser-measles.git
+    cd laser-measles
+    pip install -e ".[dev]"
+    ```
 
-```bash
-tox -e docs
-```
+2. Run the full test suite:
 
-Note, to combine the coverage data from all the tox environments run:
+    ```bash
+    tox
+    ```
+
+3. Build the documentation:
+
+    ```bash
+    tox -e docs
+    ```
+
+To combine coverage data across all tox environments:
 
 | Platform | Command |
 |----------|---------|
 | Windows | `set PYTEST_ADDOPTS=--cov-append` then `tox` |
 | Other | `PYTEST_ADDOPTS=--cov-append tox` |
 
-You can check that the bump versioning works by running:
+To verify version bumping before releasing:
 
 ```bash
 uvx bump-my-version bump minor --dry-run -vv
 ```
+
+## Next steps
+
+After installing, see the [Quick Start tutorial](tutorials/tut_quickstart_hello_world.ipynb) to run your first model.

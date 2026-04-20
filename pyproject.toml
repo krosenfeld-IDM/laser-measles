@@ -172,6 +172,7 @@ docs = [
     "mkdocstrings-python",
     "mkdocs-table-reader-plugin",
     "mkdocs-exclude",
+    "markdownify",
 ]
 examples = [
     "jupytext>=1.17.2",
